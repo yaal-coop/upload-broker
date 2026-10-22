@@ -46,6 +46,11 @@ jobs:
   container:
     name: container image
     runs-on: ubuntu-24.04
+    env:
+      UPLOAD_BROKER_S3_BUCKET: ci
+      UPLOAD_BROKER_S3_ACCESS_KEY_ID: ci
+      UPLOAD_BROKER_S3_SECRET_ACCESS_KEY: ci
+      UPLOAD_BROKER_TICKET_KEY: not-a-secret-only-for-the-ci-image-check
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -53,7 +58,11 @@ jobs:
       - name: Build image
         run: docker build --file Containerfile --tag upload-broker:ci .
       - name: Start container
-        run: docker run --detach --name upload-broker --publish 8080:8080 upload-broker:ci
+        run: >-
+          docker run --detach --name upload-broker --publish 8080:8080
+          --env UPLOAD_BROKER_S3_BUCKET --env UPLOAD_BROKER_S3_ACCESS_KEY_ID
+          --env UPLOAD_BROKER_S3_SECRET_ACCESS_KEY --env UPLOAD_BROKER_TICKET_KEY
+          upload-broker:ci
       - name: Check the service answers
         run: curl --fail --silent --retry 30 --retry-delay 1 --retry-all-errors http://127.0.0.1:8080/health
       - name: Stop container

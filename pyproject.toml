@@ -13,8 +13,10 @@ license = {file = "LICENSE"}
 readme = "README.md"
 requires-python = ">= 3.14"
 dependencies = [
+    "boto3>=1.43.109",
     "fastapi>=0.143.0",
     "granian>=2.8.4",
+    "joserfc>=1.7.5",
     "pydantic-settings>=2.15.0",
 ]
 
@@ -24,11 +26,14 @@ repository = "https://github.com/yaal-coop/upload-broker"
 [dependency-groups]
 dev = [
     "httpx2>=2.13.1",
+    "moto[server]>=5.2.3",
     "mypy>=2.4.0",
     "prek>=0.5.5",
     "pytest>=9.1.1",
     "pytest-cov>=7.1.0",
+    "time-machine>=3.5.1",
     "tox-uv-bare>=1.36.1",
+    "types-boto3[s3]>=1.43.109",
 ]
 
 [tool.uv]

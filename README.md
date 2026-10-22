@@ -25,6 +25,17 @@ Settings are read from environment variables:
 
 | Variable | Default | Description |
 |---|---|---|
+| `UPLOAD_BROKER_S3_ENDPOINT_URL` | AWS | Public endpoint of the S3 server. The presigned URLs point to it. |
+| `UPLOAD_BROKER_S3_REGION` | | Region of the bucket. |
+| `UPLOAD_BROKER_S3_BUCKET` | required | Bucket that receives the files. |
+| `UPLOAD_BROKER_S3_ACCESS_KEY_ID` | required | S3 access key. |
+| `UPLOAD_BROKER_S3_SECRET_ACCESS_KEY` | required | S3 secret key. |
+| `UPLOAD_BROKER_S3_ADDRESSING_STYLE` | `path` | `path` or `virtual`. |
+| `UPLOAD_BROKER_OBJECT_PREFIX` | | Prefix of the object keys. |
+| `UPLOAD_BROKER_PRESIGN_EXPIRATION` | 7 days | Lifetime of the tickets and of the presigned URLs, in seconds or as an ISO 8601 duration. S3 caps it at 7 days. |
+| `UPLOAD_BROKER_PART_SIZE_MIN` | 64 MiB | Minimum part size, in bytes. |
+| `UPLOAD_BROKER_MAX_PARTS` | `1000` | Maximum number of parts of an upload: 1000 on Scaleway, 10000 on AWS. |
+| `UPLOAD_BROKER_TICKET_KEY` | required | Secret of at least 32 characters that signs the upload tickets. |
 | `UPLOAD_BROKER_TRUSTED_PROXIES` | `127.0.0.1` | Comma-separated addresses or networks of the reverse proxies whose `X-Forwarded-*` headers are trusted, or `*`. |
 
 ## Development
