@@ -1,5 +1,4 @@
 import datetime
-import uuid
 from typing import Annotated
 from typing import Any
 
@@ -10,34 +9,10 @@ from fastapi.testclient import TestClient
 from pytest_iam import Server
 
 from tests.conftest import SCOPE
+from tests.conftest import bearer
 from upload_broker.auth import AudienceIntrospectTokenValidator
 from upload_broker.auth import BearerAuthentication
 from upload_broker.settings import Settings
-
-
-@pytest.fixture
-def broker(iam_server: Server) -> Any:
-    """Register the upload-broker client at the authorization server."""
-    client = iam_server.models.Client(
-        client_id=str(uuid.uuid4()),
-        client_secret=str(uuid.uuid4()),
-        token_endpoint_auth_method="client_secret_basic",
-    )
-    iam_server.backend.save(client)
-    return client
-
-
-@pytest.fixture
-def migrator(iam_server: Server) -> Any:
-    """Register the client that obtains tokens for the users."""
-    client = iam_server.models.Client(client_id=str(uuid.uuid4()))
-    iam_server.backend.save(client)
-    return client
-
-
-@pytest.fixture
-def user(iam_server: Server) -> Any:
-    return iam_server.random_user()
 
 
 @pytest.fixture
@@ -61,19 +36,6 @@ def client(validator: AudienceIntrospectTokenValidator) -> TestClient:
         return sub
 
     return TestClient(app)
-
-
-def bearer(
-    iam_server: Server, user: Any, migrator: Any, broker: Any, **overrides: Any
-) -> dict[str, str]:
-    values: dict[str, Any] = {
-        "audience": [migrator, broker],
-        "scope": ["openid", SCOPE],
-    }
-    token = iam_server.random_token(
-        subject=user, client=migrator, **(values | overrides)
-    )
-    return {"Authorization": f"Bearer {token.access_token}"}
 
 
 def test_valid_token_gives_its_subject(

@@ -1,10 +1,12 @@
 import uuid
 from collections.abc import Iterator
+from typing import Any
 
 import httpx2
 import pytest
 from moto.server import ThreadedMotoServer
 from pydantic import SecretStr
+from pytest_iam import Server
 
 from upload_broker.settings import MIB
 from upload_broker.settings import Settings
@@ -78,3 +80,50 @@ def put_parts(parts: list[PresignedPart], data: bytes, part_size: int) -> list[P
         response.raise_for_status()
         sent.append(Part(number=part.number, etag=response.headers["ETag"]))
     return sent
+
+
+@pytest.fixture
+def broker(iam_server: Server) -> Any:
+    """Register the upload-broker client at the authorization server."""
+    client = iam_server.models.Client(
+        client_id=str(uuid.uuid4()),
+        client_secret=str(uuid.uuid4()),
+        token_endpoint_auth_method="client_secret_basic",
+    )
+    iam_server.backend.save(client)
+    return client
+
+
+@pytest.fixture
+def migrator(iam_server: Server) -> Any:
+    """Register the client that obtains tokens for the users."""
+    client = iam_server.models.Client(client_id=str(uuid.uuid4()))
+    iam_server.backend.save(client)
+    return client
+
+
+@pytest.fixture
+def user(iam_server: Server) -> Any:
+    return iam_server.random_user()
+
+
+def bearer(
+    iam_server: Server, user: Any, migrator: Any, broker: Any, **overrides: Any
+) -> dict[str, str]:
+    """Issue a token to the migrator for the user, and return its header."""
+    values: dict[str, Any] = {
+        "audience": [migrator, broker],
+        "scope": ["openid", SCOPE],
+    }
+    token = iam_server.random_token(
+        subject=user, client=migrator, **(values | overrides)
+    )
+    return {"Authorization": f"Bearer {token.access_token}"}
+
+
+@pytest.fixture
+def headers(
+    iam_server: Server, user: Any, migrator: Any, broker: Any
+) -> dict[str, str]:
+    """Return the authorization header of a valid token for the user."""
+    return bearer(iam_server, user, migrator, broker)
