@@ -16,6 +16,7 @@ from upload_broker.ticket import Owner
 from upload_broker.uploads import Uploads
 
 TICKET_KEY = "ticket-key-for-the-tests-0123456789"
+SCOPE = "depot:archive:create"
 OWNER = Owner(email="owner@example.org", first_name="Ada", last_name="Lovelace")
 
 
@@ -39,6 +40,11 @@ def settings(s3_endpoint_url: str) -> Settings:
         s3_secret_access_key=SecretStr("test"),
         ticket_key=SecretStr(TICKET_KEY),
         part_size_min=5 * MIB,
+        introspection_url="http://localhost/introspect",
+        client_id="upload-broker",
+        client_secret=SecretStr("secret"),
+        audience="upload-broker",
+        required_scope=SCOPE,
     )
     s3_client(settings).create_bucket(Bucket=settings.s3_bucket)
     return settings

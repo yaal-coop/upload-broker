@@ -40,5 +40,21 @@ class Settings(BaseSettings):
     ticket_key: SecretStr = Field(min_length=32)
     """Secret that signs the upload tickets."""
 
+    introspection_url: str
+    """Token introspection endpoint of the authorization server (RFC 7662)."""
+
+    client_id: str
+    client_secret: SecretStr
+    """Credentials of the service at the authorization server."""
+
+    audience: str
+    """Audience that the tokens must contain to be accepted."""
+
+    required_scope: str
+    """Scope that the tokens must contain to be accepted."""
+
+    introspection_timeout: float = 10
+    """Timeout of the introspection requests, in seconds."""
+
     trusted_proxies: str = "127.0.0.1"
     """Comma-separated addresses or networks whose X-Forwarded-* headers are trusted, or *."""

@@ -28,6 +28,11 @@ def test_served_app_reads_settings_from_the_environment(
     monkeypatch.setenv("UPLOAD_BROKER_S3_ACCESS_KEY_ID", "key")
     monkeypatch.setenv("UPLOAD_BROKER_S3_SECRET_ACCESS_KEY", "secret")
     monkeypatch.setenv("UPLOAD_BROKER_TICKET_KEY", TICKET_KEY)
+    monkeypatch.setenv("UPLOAD_BROKER_INTROSPECTION_URL", "http://localhost/introspect")
+    monkeypatch.setenv("UPLOAD_BROKER_CLIENT_ID", "upload-broker")
+    monkeypatch.setenv("UPLOAD_BROKER_CLIENT_SECRET", "secret")
+    monkeypatch.setenv("UPLOAD_BROKER_AUDIENCE", "upload-broker")
+    monkeypatch.setenv("UPLOAD_BROKER_REQUIRED_SCOPE", "depot:archive:create")
     monkeypatch.setenv("UPLOAD_BROKER_TRUSTED_PROXIES", "10.0.0.0/8")
     client = TestClient(create_app())
     assert client.get("/health").status_code == 200

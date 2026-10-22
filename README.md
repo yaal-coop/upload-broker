@@ -36,6 +36,12 @@ Settings are read from environment variables:
 | `UPLOAD_BROKER_PART_SIZE_MIN` | 64 MiB | Minimum part size, in bytes. |
 | `UPLOAD_BROKER_MAX_PARTS` | `1000` | Maximum number of parts of an upload: 1000 on Scaleway, 10000 on AWS. |
 | `UPLOAD_BROKER_TICKET_KEY` | required | Secret of at least 32 characters that signs the upload tickets. |
+| `UPLOAD_BROKER_INTROSPECTION_URL` | required | Token introspection endpoint of the authorization server (RFC 7662). |
+| `UPLOAD_BROKER_CLIENT_ID` | required | Client ID of the service at the authorization server. |
+| `UPLOAD_BROKER_CLIENT_SECRET` | required | Client secret of the service at the authorization server. |
+| `UPLOAD_BROKER_AUDIENCE` | required | Audience that the tokens must contain. |
+| `UPLOAD_BROKER_REQUIRED_SCOPE` | required | Scope that the tokens must contain. |
+| `UPLOAD_BROKER_INTROSPECTION_TIMEOUT` | `10` | Timeout of the introspection requests, in seconds. |
 | `UPLOAD_BROKER_TRUSTED_PROXIES` | `127.0.0.1` | Comma-separated addresses or networks of the reverse proxies whose `X-Forwarded-*` headers are trusted, or `*`. |
 
 ## Development
