@@ -1,0 +1,81 @@
+{
+  "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+  "extends": [
+    "config:recommended",
+    "helpers:pinGitHubActionDigests",
+    ":enablePreCommit"
+  ],
+  "timezone": "Europe/Paris",
+  "schedule": ["before 7am on monday"],
+  "prConcurrentLimit": 5,
+  "minimumReleaseAge": "14 days",
+  "packageRules": [
+    {
+      "description": "This is an application: nobody depends on its version floors, so they follow the locked versions.",
+      "matchManagers": ["pep621"],
+      "rangeStrategy": "bump"
+    },
+    {
+      "description": "build-system.requires is not recorded in uv.lock, so widen the bound instead.",
+      "matchManagers": ["pep621"],
+      "matchDepTypes": ["build-system.requires"],
+      "rangeStrategy": "widen"
+    },
+    {
+      "description": "One pull request for every non-major Python update.",
+      "matchManagers": ["pep621"],
+      "matchUpdateTypes": ["minor", "patch"],
+      "groupName": "python dependencies",
+      "automerge": true
+    },
+    {
+      "description": "One pull request for GitHub Actions. Digests stay pinned and the trailing # vX.Y.Z comment is kept in sync.",
+      "matchManagers": ["github-actions"],
+      "matchUpdateTypes": ["minor", "patch", "digest"],
+      "groupName": "github actions",
+      "automerge": true
+    },
+    {
+      "description": "One pull request for pre-commit hook revisions.",
+      "matchManagers": ["pre-commit"],
+      "matchUpdateTypes": ["minor", "patch"],
+      "groupName": "pre-commit hooks",
+      "automerge": true
+    },
+    {
+      "description": "One pull request for the container images of the Containerfile and of the development compose file.",
+      "matchManagers": ["dockerfile", "docker-compose"],
+      "matchUpdateTypes": ["minor", "patch", "digest"],
+      "groupName": "container images",
+      "automerge": true
+    },
+    {
+      "description": "uv builds the project with its bundled backend only when its version matches the uv_build range, so the uv of setup-uv, the uv container image and that range move together.",
+      "matchPackageNames": ["astral-sh/uv", "docker.io/astral/uv", "uv-build"],
+      "groupName": "uv",
+      "automerge": true
+    },
+    {
+      "description": "GitHub runner labels have no release date, so the cooldown would hold them forever.",
+      "matchDatasources": ["github-runners"],
+      "minimumReleaseAge": null
+    },
+    {
+      "description": "Major updates are never grouped and never automerged.",
+      "matchUpdateTypes": ["major"],
+      "automerge": false
+    }
+  ],
+  "lockFileMaintenance": {
+    "description": "Weekly full refresh of uv.lock, which is the only way transitive dependencies ever move.",
+    "enabled": true,
+    "automerge": true,
+    "schedule": ["before 7am on monday"]
+  },
+  "vulnerabilityAlerts": {
+    "description": "Security fixes bypass the weekly schedule and the 14 day cooldown, and always wait for a human.",
+    "schedule": ["at any time"],
+    "minimumReleaseAge": null,
+    "automerge": false
+  }
+}
