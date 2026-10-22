@@ -4,10 +4,12 @@ from typing import Any
 
 import httpx2
 import pytest
+from fastapi.testclient import TestClient
 from moto.server import ThreadedMotoServer
 from pydantic import SecretStr
 from pytest_iam import Server
 
+from upload_broker.app import create_fastapi
 from upload_broker.settings import MIB
 from upload_broker.settings import Settings
 from upload_broker.storage import Part
@@ -127,3 +129,13 @@ def headers(
 ) -> dict[str, str]:
     """Return the authorization header of a valid token for the user."""
     return bearer(iam_server, user, migrator, broker)
+
+
+@pytest.fixture
+def api(settings: Settings, iam_server: Server, broker: Any) -> TestClient:
+    """Return a client of the whole application, authenticated by the test server."""
+    settings.introspection_url = f"{iam_server.url}oauth/introspect"
+    settings.client_id = broker.client_id
+    settings.client_secret = SecretStr(broker.client_secret)
+    settings.audience = broker.client_id
+    return TestClient(create_fastapi(settings))

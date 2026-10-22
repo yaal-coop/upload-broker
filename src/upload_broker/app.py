@@ -5,10 +5,17 @@ from starlette.types import Receive
 from starlette.types import Scope
 from starlette.types import Send
 
+from upload_broker.api import add_error_handlers
+from upload_broker.api import uploads_router
+from upload_broker.auth import AudienceIntrospectTokenValidator
+from upload_broker.auth import BearerAuthentication
 from upload_broker.settings import Settings
+from upload_broker.storage import Storage
+from upload_broker.storage import s3_client
+from upload_broker.uploads import Uploads
 
 
-def create_fastapi() -> FastAPI:
+def create_fastapi(settings: Settings) -> FastAPI:
     """Build the FastAPI application with its routes."""
     app = FastAPI(title="upload-broker")
 
@@ -16,6 +23,24 @@ def create_fastapi() -> FastAPI:
     def health() -> dict[str, str]:
         return {"status": "ok"}
 
+    storage = Storage(
+        s3_client(settings),
+        settings.s3_bucket,
+        prefix=settings.object_prefix,
+        part_size_min=settings.part_size_min,
+        max_parts=settings.max_parts,
+    )
+    uploads = Uploads(
+        storage,
+        settings.ticket_key.get_secret_value(),
+        settings.presign_expiration,
+    )
+    authentication = BearerAuthentication(
+        AudienceIntrospectTokenValidator.from_settings(settings),
+        settings.required_scope,
+    )
+    app.include_router(uploads_router(uploads, authentication))
+    add_error_handlers(app)
     return app
 
 
@@ -27,7 +52,7 @@ def create_app(settings: Settings | None = None) -> ASGIApp:
     if settings is None:
         settings = Settings()
     wrapped = wrap_asgi_with_proxy_headers(
-        create_fastapi(), trusted_hosts=settings.trusted_proxies
+        create_fastapi(settings), trusted_hosts=settings.trusted_proxies
     )
 
     # Granian's wrapper is a plain function returning a coroutine, which ASGI

@@ -7,8 +7,8 @@ from upload_broker.app import create_fastapi
 from upload_broker.settings import Settings
 
 
-def test_health_returns_ok() -> None:
-    client = TestClient(create_fastapi())
+def test_health_returns_ok(settings: Settings) -> None:
+    client = TestClient(create_fastapi(settings))
     response = client.get("/health")
     assert response.status_code == 200
     assert response.json() == {"status": "ok"}

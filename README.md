@@ -11,6 +11,31 @@ It applies the [Valet Key pattern](https://learn.microsoft.com/en-us/azure/archi
 
 It was written to move workspace archives from [drive-migrator](https://github.com/suitenumerique/drive-migrator) to their destination.
 
+## API
+
+Every route but `/health` requires a bearer token whose audience contains the service and whose scope contains `UPLOAD_BROKER_REQUIRED_SCOPE`.
+The interactive documentation is served at `/docs`.
+
+| Route | Body | Response |
+|---|---|---|
+| `POST /uploads` | `source_id`, `size`, `md5`, `title`, `owner` (`email`, `first_name`, `last_name`) | `201` with a `ticket`, the `part_size`, the `expires_at` date and one presigned URL per part |
+| `POST /uploads/parts` | `ticket` | `200` with new URLs for the parts the bucket has not received yet |
+| `POST /uploads/complete` | `ticket`, `parts` (`number` and `etag` of every part) | `204` once the file is assembled |
+
+The client sends each part with a `PUT` on its URL, and keeps the `ETag` header of the response.
+Completing an upload twice with the same parts succeeds.
+
+Errors answer with a stable code in `detail`:
+
+| Status | Code | Meaning |
+|---|---|---|
+| `400` | `invalid_ticket` | The ticket is malformed, forged or expired. |
+| `403` | `ticket_owner_mismatch` | The ticket was issued to another user. |
+| `404` | `upload_not_found` | The upload was purged or never existed. |
+| `409` | `parts_mismatch` | The parts differ from the ones the bucket received. |
+| `409` | `size_mismatch` | The assembled file does not have the announced size. |
+| `413` | `file_too_large` | The file needs more parts than the bucket accepts. |
+
 ## Run the container
 
 ```console
