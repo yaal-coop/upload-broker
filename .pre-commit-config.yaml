@@ -1,0 +1,39 @@
+---
+repos:
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: 38bfb07c0c64c304f47eb52090f8288150c77730  # frozen: v0.17.1
+    hooks:
+      - id: ruff
+        args: [--fix, --exit-non-zero-on-fix]
+      - id: ruff-format
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: 3e8a8703264a2f4a69428a0aa4dcb512790b2c8c  # frozen: v6.0.0
+    hooks:
+      - id: fix-byte-order-marker
+      - id: trailing-whitespace
+        exclude: "\\.svg$|\\.map$|\\.min\\.css$|\\.min\\.js$|\\.po$|\\.pot$"
+      - id: end-of-file-fixer
+        exclude: "\\.svg$|\\.map$|\\.min\\.css$|\\.min\\.js$|\\.po$|\\.pot$"
+      - id: check-toml
+  - repo: https://github.com/astral-sh/uv-pre-commit
+    rev: dd409d04a3fa4a50f918dddb3ad3c6d8f46ab2cd  # frozen: 0.13.4
+    hooks:
+      - id: uv-lock
+  - repo: local
+    hooks:
+      - id: mypy
+        name: mypy
+        entry: uv run mypy
+        language: system
+        types_or: [python, pyi]
+        pass_filenames: false
+        require_serial: true
+  - repo: https://github.com/codespell-project/codespell
+    rev: 57b21406f092110c18776e39b0bda50d37c945c8  # frozen: v2.4.3
+    hooks:
+    - id: codespell
+      args: [--write-changes]
+  - repo: https://github.com/zizmorcore/zizmor-pre-commit
+    rev: c92afdf2c6ca336aaa8f39e2bd8d48f62dbd8e1f  # frozen: v1.31.1
+    hooks:
+      - id: zizmor
