@@ -1,0 +1,75 @@
+name: tests
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+
+env:
+  UV_LOCKED: 1
+  UV_PYTHON_PREFERENCE: only-managed
+
+permissions:
+  contents: read
+
+jobs:
+  tests:
+    name: unit tests
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Install uv
+        uses: astral-sh/setup-uv@1c37ad07a6a961277cf70c0d37d6f313000f5884 # v10.3.0
+        with:
+          version: "0.13.4"
+          enable-cache: true
+      - name: Run tests
+        run: uv run pytest --cov --cov-fail-under=100 --cov-report term:skip-covered
+
+  style:
+    runs-on: ubuntu-24.04
+    steps:
+    - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      with:
+        persist-credentials: false
+    - name: Install uv
+      uses: astral-sh/setup-uv@1c37ad07a6a961277cf70c0d37d6f313000f5884 # v10.3.0
+      with:
+        version: "0.13.4"
+        enable-cache: true
+    - uses: pre-commit/action@2c7b3805fd2a0fd8c1884dcaebf91fc102a13ecd # v3.0.1
+
+  container:
+    name: container image
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Build image
+        run: docker build --file Containerfile --tag upload-broker:ci .
+      - name: Start container
+        run: docker run --detach --name upload-broker --publish 8080:8080 upload-broker:ci
+      - name: Check the service answers
+        run: curl --fail --silent --retry 30 --retry-delay 1 --retry-all-errors http://127.0.0.1:8080/health
+      - name: Stop container
+        run: timeout 5 docker stop upload-broker
+      - name: Show logs
+        if: always()
+        run: docker logs upload-broker
+
+  all-checks:
+    if: always()
+    needs: [tests, style, container]
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Fail if a needed job did not succeed
+        if: >-
+          contains(needs.*.result, 'failure')
+          || contains(needs.*.result, 'cancelled')
+          || contains(needs.*.result, 'skipped')
+        run: exit 1
