@@ -84,6 +84,13 @@ def put_parts(parts: list[PresignedPart], data: bytes, part_size: int) -> list[P
     return sent
 
 
+@pytest.fixture(scope="session")
+def iam_configuration(iam_configuration: dict[str, Any]) -> dict[str, Any]:
+    """Keep the loggers of upload-broker enabled when the IAM server starts."""
+    iam_configuration["CANAILLE"]["LOGGING"]["disable_existing_loggers"] = False
+    return iam_configuration
+
+
 @pytest.fixture
 def broker(iam_server: Server) -> Any:
     """Register the upload-broker client at the authorization server."""
