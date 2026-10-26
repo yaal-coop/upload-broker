@@ -20,6 +20,9 @@ from upload_broker.storage import TooLarge
 from upload_broker.storage import UploadNotFound
 from upload_broker.ticket import InvalidTicket
 from upload_broker.ticket import Owner
+from upload_broker.tribu import AlreadyQueued
+from upload_broker.tribu import TribuRejected
+from upload_broker.tribu import TribuUnavailable
 from upload_broker.uploads import TicketOwnerMismatch
 from upload_broker.uploads import Uploads
 
@@ -32,6 +35,9 @@ ERRORS: dict[type[Exception], tuple[int, str]] = {
     PartsMismatch: (status.HTTP_409_CONFLICT, "parts_mismatch"),
     SizeMismatch: (status.HTTP_409_CONFLICT, "size_mismatch"),
     UploadNotFound: (status.HTTP_404_NOT_FOUND, "upload_not_found"),
+    AlreadyQueued: (status.HTTP_409_CONFLICT, "already_queued"),
+    TribuRejected: (status.HTTP_502_BAD_GATEWAY, "tribu_rejected"),
+    TribuUnavailable: (status.HTTP_503_SERVICE_UNAVAILABLE, "tribu_unavailable"),
 }
 
 
@@ -126,7 +132,7 @@ def uploads_router(uploads: Uploads, authentication: BearerAuthentication) -> AP
 
     @router.post("/complete", status_code=status.HTTP_204_NO_CONTENT)
     def complete(body: CompleteRequest, sub: Subject) -> None:
-        """Assemble the file from its parts."""
+        """Assemble the file from its parts, and hand it over to Tribu."""
         parts = [Part(number=part.number, etag=part.etag) for part in body.parts]
         uploads.complete(body.ticket, sub, parts)
 

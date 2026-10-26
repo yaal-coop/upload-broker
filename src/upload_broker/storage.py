@@ -128,6 +128,13 @@ class Storage:
             for number in numbers
         ]
 
+    def presign_download(self, key: str, expires_in: datetime.timedelta) -> str:
+        return self.client.generate_presigned_url(
+            "get_object",
+            Params={"Bucket": self.bucket, "Key": key},
+            ExpiresIn=int(expires_in.total_seconds()),
+        )
+
     def received_parts(self, key: str, upload_id: str) -> list[Part]:
         """List the parts the bucket received, in order.
 

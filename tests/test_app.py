@@ -33,6 +33,8 @@ def test_served_app_reads_settings_from_the_environment(
     monkeypatch.setenv("UPLOAD_BROKER_CLIENT_SECRET", "secret")
     monkeypatch.setenv("UPLOAD_BROKER_AUDIENCE", "upload-broker")
     monkeypatch.setenv("UPLOAD_BROKER_REQUIRED_SCOPE", "depot:archive:create")
+    monkeypatch.setenv("UPLOAD_BROKER_TRIBU_URL", "http://localhost/tribu")
+    monkeypatch.setenv("UPLOAD_BROKER_TRIBU_SECRET_KEY", "secret")
     monkeypatch.setenv("UPLOAD_BROKER_TRUSTED_PROXIES", "10.0.0.0/8")
     client = TestClient(create_app())
     assert client.get("/health").status_code == 200

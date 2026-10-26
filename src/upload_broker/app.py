@@ -12,11 +12,15 @@ from upload_broker.auth import BearerAuthentication
 from upload_broker.settings import Settings
 from upload_broker.storage import Storage
 from upload_broker.storage import s3_client
+from upload_broker.tribu import Tribu
 from upload_broker.uploads import Uploads
 
 
-def create_fastapi(settings: Settings) -> FastAPI:
-    """Build the FastAPI application with its routes."""
+def create_fastapi(settings: Settings, tribu: Tribu | None = None) -> FastAPI:
+    """Build the FastAPI application with its routes.
+
+    The Tribu client is built from the settings when omitted.
+    """
     app = FastAPI(title="upload-broker")
 
     @app.get("/health")
@@ -32,6 +36,7 @@ def create_fastapi(settings: Settings) -> FastAPI:
     )
     uploads = Uploads(
         storage,
+        tribu or Tribu.from_settings(settings),
         settings.ticket_key.get_secret_value(),
         settings.presign_expiration,
     )

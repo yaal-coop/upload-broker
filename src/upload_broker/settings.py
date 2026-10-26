@@ -56,5 +56,14 @@ class Settings(BaseSettings):
     introspection_timeout: float = 10
     """Timeout of the introspection requests, in seconds."""
 
+    tribu_url: str
+    """Base URL of the Tribu API."""
+
+    tribu_secret_key: SecretStr
+    """Secret key sent to the Tribu migration API."""
+
+    tribu_timeout: float = 10
+    """Timeout of the requests to Tribu, in seconds."""
+
     trusted_proxies: str = "127.0.0.1"
     """Comma-separated addresses or networks whose X-Forwarded-* headers are trusted, or *."""

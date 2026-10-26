@@ -1,9 +1,11 @@
 from typing import Any
 
+import httpx2
 import pytest
 from fastapi.testclient import TestClient
 from pytest_iam import Server
 
+from tests.conftest import FakeTribu
 from tests.conftest import bearer
 from tests.conftest import put_parts
 from upload_broker.app import create_fastapi
@@ -44,8 +46,11 @@ def send_parts(
     return [{"number": part.number, "etag": part.etag} for part in sent]
 
 
-def test_file_is_uploaded_and_completed(
-    api: TestClient, headers: dict[str, str], settings: Settings
+def test_file_is_uploaded_completed_and_handed_over_to_tribu(
+    api: TestClient,
+    headers: dict[str, str],
+    settings: Settings,
+    tribu_server: FakeTribu,
 ) -> None:
     opened = open_upload(api, headers)
     assert opened["part_size"] == 5 * MIB
@@ -62,13 +67,45 @@ def test_file_is_uploaded_and_completed(
     key = decode_ticket(opened["ticket"], settings.ticket_key.get_secret_value()).key
     head = s3_client(settings).head_object(Bucket=settings.s3_bucket, Key=key)
     assert head["ContentLength"] == len(DATA)
+    assert [form["source-id"] for form in tribu_server.forms] == ["workspace-1"]
 
 
-def test_completing_twice_succeeds(api: TestClient, headers: dict[str, str]) -> None:
+def test_completing_twice_reports_the_archive_already_queued(
+    api: TestClient, headers: dict[str, str]
+) -> None:
     opened = open_upload(api, headers)
     body = {"ticket": opened["ticket"], "parts": send_parts(opened, opened["parts"])}
     assert api.post("/uploads/complete", json=body, headers=headers).status_code == 204
+
+    response = api.post("/uploads/complete", json=body, headers=headers)
+    assert response.status_code == 409
+    assert response.json() == {"detail": "already_queued"}
+
+
+def test_completing_again_after_tribu_was_unavailable_succeeds(
+    api: TestClient, headers: dict[str, str], tribu_server: FakeTribu
+) -> None:
+    tribu_server.failures = [httpx2.Response(503)]
+    opened = open_upload(api, headers)
+    body = {"ticket": opened["ticket"], "parts": send_parts(opened, opened["parts"])}
+
+    response = api.post("/uploads/complete", json=body, headers=headers)
+    assert response.status_code == 503
+    assert response.json() == {"detail": "tribu_unavailable"}
+
     assert api.post("/uploads/complete", json=body, headers=headers).status_code == 204
+
+
+def test_archive_refused_by_tribu_is_reported(
+    api: TestClient, headers: dict[str, str], tribu_server: FakeTribu
+) -> None:
+    tribu_server.failures = [httpx2.Response(400)]
+    opened = open_upload(api, headers)
+    body = {"ticket": opened["ticket"], "parts": send_parts(opened, opened["parts"])}
+
+    response = api.post("/uploads/complete", json=body, headers=headers)
+    assert response.status_code == 502
+    assert response.json() == {"detail": "tribu_rejected"}
 
 
 def test_resume_returns_only_the_missing_parts(

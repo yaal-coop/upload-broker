@@ -1,3 +1,5 @@
+import email.parser
+import email.policy
 import uuid
 from collections.abc import Iterator
 from typing import Any
@@ -17,10 +19,12 @@ from upload_broker.storage import PresignedPart
 from upload_broker.storage import Storage
 from upload_broker.storage import s3_client
 from upload_broker.ticket import Owner
+from upload_broker.tribu import Tribu
 from upload_broker.uploads import Uploads
 
 TICKET_KEY = "ticket-key-for-the-tests-0123456789"
 SCOPE = "depot:archive:create"
+TRIBU_SECRET_KEY = "tribu-secret-key"
 OWNER = Owner(email="owner@example.org", first_name="Ada", last_name="Lovelace")
 
 
@@ -49,6 +53,8 @@ def settings(s3_endpoint_url: str) -> Settings:
         client_secret=SecretStr("secret"),
         audience="upload-broker",
         required_scope=SCOPE,
+        tribu_url="http://tribu.test/api",
+        tribu_secret_key=SecretStr(TRIBU_SECRET_KEY),
     )
     s3_client(settings).create_bucket(Bucket=settings.s3_bucket)
     return settings
@@ -64,10 +70,66 @@ def storage(settings: Settings) -> Storage:
     )
 
 
+class FakeTribu:
+    """Tribu migration API, that checks the size of the archives it receives."""
+
+    def __init__(self) -> None:
+        self.requests: list[httpx2.Request] = []
+        self.forms: list[dict[str, str]] = []
+        self.failures: list[httpx2.Response | httpx2.HTTPError] = []
+        """Answers to give before handling the requests normally."""
+
+    def __call__(self, request: httpx2.Request) -> httpx2.Response:
+        self.requests.append(request)
+        if self.failures:
+            failure = self.failures.pop(0)
+            if isinstance(failure, httpx2.HTTPError):
+                raise failure
+            return failure
+
+        form = parse_form(request)
+        if any(f["source-id"] == form["source-id"] for f in self.forms):
+            return httpx2.Response(409)
+
+        download = httpx2.get(form["file-url"], headers={"Range": "bytes=0-0"})
+        assert download.headers["Content-Range"] == f"bytes 0-0/{form['file-size']}"
+
+        self.forms.append(form)
+        return httpx2.Response(201)
+
+
+def parse_form(request: httpx2.Request) -> dict[str, str]:
+    """Read the fields of a multipart/form-data body."""
+    headers = f"Content-Type: {request.headers['Content-Type']}\r\n\r\n".encode()
+    message = email.parser.BytesParser(policy=email.policy.default).parsebytes(
+        headers + request.read()
+    )
+    return {
+        part["Content-Disposition"].params["name"]: part.get_content()
+        for part in message.iter_parts()
+    }
+
+
 @pytest.fixture
-def uploads(storage: Storage, settings: Settings) -> Uploads:
+def tribu_server() -> FakeTribu:
+    return FakeTribu()
+
+
+@pytest.fixture
+def tribu(settings: Settings, tribu_server: FakeTribu) -> Tribu:
+    return Tribu(
+        settings.tribu_url,
+        settings.tribu_secret_key.get_secret_value(),
+        settings.tribu_timeout,
+        transport=httpx2.MockTransport(tribu_server),
+    )
+
+
+@pytest.fixture
+def uploads(storage: Storage, tribu: Tribu, settings: Settings) -> Uploads:
     return Uploads(
         storage,
+        tribu,
         settings.ticket_key.get_secret_value(),
         settings.presign_expiration,
     )
@@ -139,10 +201,12 @@ def headers(
 
 
 @pytest.fixture
-def api(settings: Settings, iam_server: Server, broker: Any) -> TestClient:
+def api(
+    settings: Settings, iam_server: Server, broker: Any, tribu: Tribu
+) -> TestClient:
     """Return a client of the whole application, authenticated by the test server."""
     settings.introspection_url = f"{iam_server.url}oauth/introspect"
     settings.client_id = broker.client_id
     settings.client_secret = SecretStr(broker.client_secret)
     settings.audience = broker.client_id
-    return TestClient(create_fastapi(settings))
+    return TestClient(create_fastapi(settings, tribu))

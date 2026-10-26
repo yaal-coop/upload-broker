@@ -10,6 +10,7 @@ from upload_broker.ticket import Owner
 from upload_broker.ticket import Ticket
 from upload_broker.ticket import decode_ticket
 from upload_broker.ticket import encode_ticket
+from upload_broker.tribu import Tribu
 
 
 class TicketOwnerMismatch(InvalidTicket):
@@ -28,9 +29,14 @@ class Uploads:
     """Upload operations, authorized by signed tickets."""
 
     def __init__(
-        self, storage: Storage, ticket_key: str, expiration: datetime.timedelta
+        self,
+        storage: Storage,
+        tribu: Tribu,
+        ticket_key: str,
+        expiration: datetime.timedelta,
     ) -> None:
         self.storage = storage
+        self.tribu = tribu
         self.ticket_key = ticket_key
         self.expiration = expiration
 
@@ -94,11 +100,17 @@ class Uploads:
         )
 
     def complete(self, ticket_value: str, sub: str, parts: list[Part]) -> Ticket:
-        """Assemble the object, and return the ticket for the delivery."""
+        """Assemble the object, hand it over to Tribu, and return the ticket.
+
+        Completing an upload twice sends it to Tribu twice.
+        """
         ticket = self._ticket(ticket_value, sub)
         if [part.number for part in parts] != list(range(1, ticket.part_count + 1)):
             raise PartsMismatch
         self.storage.complete(ticket.key, ticket.upload_id, parts, ticket.size)
+        self.tribu.add(
+            ticket, self.storage.presign_download(ticket.key, self.expiration)
+        )
         return ticket
 
     def _ticket(self, value: str, sub: str) -> Ticket:

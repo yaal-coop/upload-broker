@@ -56,6 +56,8 @@ jobs:
       UPLOAD_BROKER_CLIENT_SECRET: ci
       UPLOAD_BROKER_AUDIENCE: ci
       UPLOAD_BROKER_REQUIRED_SCOPE: ci
+      UPLOAD_BROKER_TRIBU_URL: http://localhost/tribu
+      UPLOAD_BROKER_TRIBU_SECRET_KEY: ci
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -69,7 +71,8 @@ jobs:
           --env UPLOAD_BROKER_S3_SECRET_ACCESS_KEY --env UPLOAD_BROKER_TICKET_KEY
           --env UPLOAD_BROKER_INTROSPECTION_URL --env UPLOAD_BROKER_CLIENT_ID
           --env UPLOAD_BROKER_CLIENT_SECRET --env UPLOAD_BROKER_AUDIENCE
-          --env UPLOAD_BROKER_REQUIRED_SCOPE
+          --env UPLOAD_BROKER_REQUIRED_SCOPE --env UPLOAD_BROKER_TRIBU_URL
+          --env UPLOAD_BROKER_TRIBU_SECRET_KEY
           upload-broker:ci
       - name: Check the service answers
         run: curl --fail --silent --retry 30 --retry-delay 1 --retry-all-errors http://127.0.0.1:8080/health

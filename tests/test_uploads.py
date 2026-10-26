@@ -2,11 +2,13 @@ import datetime
 from urllib.parse import parse_qs
 from urllib.parse import urlsplit
 
+import httpx2
 import pytest
 import time_machine
 
 from tests.conftest import OWNER
 from tests.conftest import TICKET_KEY
+from tests.conftest import FakeTribu
 from tests.conftest import put_parts
 from upload_broker.settings import MIB
 from upload_broker.storage import Part
@@ -15,6 +17,8 @@ from upload_broker.storage import TooLarge
 from upload_broker.storage import UploadNotFound
 from upload_broker.ticket import InvalidTicket
 from upload_broker.ticket import decode_ticket
+from upload_broker.tribu import AlreadyQueued
+from upload_broker.tribu import TribuUnavailable
 from upload_broker.uploads import OpenedUpload
 from upload_broker.uploads import TicketOwnerMismatch
 from upload_broker.uploads import Uploads
@@ -49,7 +53,9 @@ def test_open_refuses_files_too_large(uploads: Uploads) -> None:
         open_upload(uploads, size=6 * 1024 * MIB)
 
 
-def test_uploaded_file_is_completed(uploads: Uploads) -> None:
+def test_uploaded_file_is_completed_and_handed_over_to_tribu(
+    uploads: Uploads, tribu_server: FakeTribu
+) -> None:
     opened = open_upload(uploads)
     parts = put_parts(opened.parts, DATA, opened.part_size)
 
@@ -61,6 +67,55 @@ def test_uploaded_file_is_completed(uploads: Uploads) -> None:
         Bucket=uploads.storage.bucket, Key=ticket.key
     )
     assert head["ContentLength"] == len(DATA)
+    assert tribu_server.forms == [
+        {
+            "source-id": "workspace-1",
+            "file-url": tribu_server.forms[0]["file-url"],
+            "file-size": str(len(DATA)),
+            "checksum": "0" * 32,
+            "title": "Workspace",
+            "owner-mail": OWNER.email,
+            "owner-first-name": OWNER.first_name,
+            "owner-last-name": OWNER.last_name,
+            "secret-key": "tribu-secret-key",
+        }
+    ]
+
+
+def test_download_url_expires_with_the_tickets(
+    uploads: Uploads, tribu_server: FakeTribu
+) -> None:
+    opened = open_upload(uploads)
+    uploads.complete(
+        opened.ticket, "user-1", put_parts(opened.parts, DATA, opened.part_size)
+    )
+
+    url = tribu_server.forms[0]["file-url"]
+    expires = int(parse_qs(urlsplit(url).query)["X-Amz-Expires"][0])
+    assert expires == uploads.expiration.total_seconds()
+
+
+def test_completing_twice_reports_the_archive_already_queued(
+    uploads: Uploads,
+) -> None:
+    opened = open_upload(uploads)
+    parts = put_parts(opened.parts, DATA, opened.part_size)
+    uploads.complete(opened.ticket, "user-1", parts)
+    with pytest.raises(AlreadyQueued):
+        uploads.complete(opened.ticket, "user-1", parts)
+
+
+def test_completing_again_after_tribu_was_unavailable_hands_over_the_file(
+    uploads: Uploads, tribu_server: FakeTribu
+) -> None:
+    tribu_server.failures = [httpx2.ConnectError("connection refused")]
+    opened = open_upload(uploads)
+    parts = put_parts(opened.parts, DATA, opened.part_size)
+    with pytest.raises(TribuUnavailable):
+        uploads.complete(opened.ticket, "user-1", parts)
+
+    uploads.complete(opened.ticket, "user-1", parts)
+    assert [form["source-id"] for form in tribu_server.forms] == ["workspace-1"]
 
 
 def test_missing_parts_lists_only_the_parts_not_received(uploads: Uploads) -> None:
