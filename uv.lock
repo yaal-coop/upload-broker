@@ -10,6 +10,9 @@ resolution-markers = [
 exclude-newer = "0001-01-01T00:00:00Z" # This has no effect and is included for backwards compatibility when using relative exclude-newer values.
 exclude-newer-span = "P14D"
 
+[options.exclude-newer-package]
+pytest-iam = false
+
 [[package]]
 name = "annotated-doc"
 version = "0.0.5"
@@ -1612,7 +1615,7 @@ wheels = [
 
 [[package]]
 name = "pytest-iam"
-version = "0.2.6"
+version = "0.3.0"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "canaille", extra = ["oidc"] },
@@ -1621,9 +1624,9 @@ dependencies = [
     { name = "pytest" },
     { name = "wtforms" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/8b/51/bff13cdd7ecda34076aad27a17f331c72095076490d083c9bd55a742d03e/pytest_iam-0.2.6.tar.gz", hash = "sha256:676134e317b1c4fd9b5bf4da70984b413dd214dab9875e2423572ba9d26e3cb2", size = 106385, upload-time = "2026-06-20T07:30:23.147Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/d3/09/7a73c9479fb5b098cd6501aa6b5b8defa9972b6463a7f02f728358948586/pytest_iam-0.3.0.tar.gz", hash = "sha256:c45c8cf7f521a1e6a8daf6c14a6d80beecfa0fd2d593574e144aa0362aabb7b4", size = 10042, upload-time = "2026-10-26T10:53:18.854Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/4a/3b/5120b8cb85426dc7d3a26545e5b1809a957b0110701aca06be39fe5cffec/pytest_iam-0.2.6-py3-none-any.whl", hash = "sha256:1a378789ae57339bd187d8782f0f2e196e7c9044e406bafd9aaf941c15506171", size = 5752, upload-time = "2026-06-20T07:30:22.079Z" },
+    { url = "https://files.pythonhosted.org/packages/30/5b/67bdb6c6dd8ee1a28049015c0db1eb1db76b19c4010ccb0850dcfb0d4811/pytest_iam-0.3.0-py3-none-any.whl", hash = "sha256:41f47a1050db2a222fa6d0b83cfa29db649080c51cf6ee7d7e5ac8d5d07fcb94", size = 6508, upload-time = "2026-10-26T10:53:17.528Z" },
 ]
 
 [[package]]
@@ -2169,7 +2172,7 @@ dev = [
     { name = "prek", specifier = ">=0.5.5" },
     { name = "pytest", specifier = ">=9.1.1" },
     { name = "pytest-cov", specifier = ">=7.1.0" },
-    { name = "pytest-iam", specifier = ">=0.2.6" },
+    { name = "pytest-iam", specifier = ">=0.3.0" },
     { name = "time-machine", specifier = ">=3.5.1" },
     { name = "tox-uv-bare", specifier = ">=1.36.1" },
     { name = "types-authlib", specifier = ">=1.8.0.20260911" },

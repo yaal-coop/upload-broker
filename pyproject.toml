@@ -32,7 +32,7 @@ dev = [
     "prek>=0.5.5",
     "pytest>=9.1.1",
     "pytest-cov>=7.1.0",
-    "pytest-iam>=0.2.6",
+    "pytest-iam>=0.3.0",
     "time-machine>=3.5.1",
     "tox-uv-bare>=1.36.1",
     "types-authlib>=1.8.0.20260911",
@@ -42,6 +42,7 @@ dev = [
 [tool.uv]
 required-version = ">=0.13.4"
 exclude-newer = "14 days"
+exclude-newer-package = { pytest-iam = false }
 
 [tool.mypy]
 plugins = [
@@ -49,10 +50,6 @@ plugins = [
 ]
 files = ["src", "tests"]
 strict = true
-
-[[tool.mypy.overrides]]
-module = ["pytest_iam"]
-ignore_missing_imports = true
 
 [tool.pydantic-mypy]
 init_forbid_extra = true
