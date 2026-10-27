@@ -2,14 +2,17 @@ import dataclasses
 import datetime
 import hashlib
 import uuid
+from typing import TYPE_CHECKING
 
 import boto3
 from botocore.config import Config
 from botocore.exceptions import ClientError
-from types_boto3_s3 import S3Client
 
 from upload_broker.settings import MIB
 from upload_broker.settings import Settings
+
+if TYPE_CHECKING:
+    from types_boto3_s3 import S3Client
 
 MAX_PART_SIZE = 5 * 1024 * MIB
 
