@@ -56,6 +56,7 @@ def make_settings(**s3: Any) -> Settings:
 
 @pytest.fixture
 def settings(s3_endpoint_url: str) -> Settings:
+    """Return the settings of a fresh bucket on the moto server."""
     settings = make_settings(
         s3_endpoint_url=s3_endpoint_url,
         s3_region="us-east-1",
@@ -69,6 +70,7 @@ def settings(s3_endpoint_url: str) -> Settings:
 
 @pytest.fixture
 def storage(settings: Settings) -> Storage:
+    """Storage of the test bucket."""
     return Storage(
         s3_client(settings),
         settings.s3_bucket,
@@ -120,11 +122,13 @@ def parse_form(request: httpx2.Request) -> dict[str, str]:
 
 @pytest.fixture
 def tribu_server() -> FakeTribu:
+    """Fake Tribu API that records the archives it receives."""
     return FakeTribu()
 
 
 @pytest.fixture
 def tribu(settings: Settings, tribu_server: FakeTribu) -> Tribu:
+    """Tribu client connected to the fake Tribu API."""
     return Tribu(
         settings.tribu_url,
         settings.tribu_secret_key.get_secret_value(),
@@ -135,6 +139,7 @@ def tribu(settings: Settings, tribu_server: FakeTribu) -> Tribu:
 
 @pytest.fixture
 def uploads(storage: Storage, tribu: Tribu, settings: Settings) -> Uploads:
+    """Upload operations on the test bucket, handed over to the fake Tribu API."""
     return Uploads(
         storage,
         tribu,
@@ -176,6 +181,7 @@ def migrator(iam_server: Server) -> Any:
 
 @pytest.fixture
 def user(iam_server: Server) -> Any:
+    """Random user of the authorization server."""
     return iam_server.random_user()
 
 

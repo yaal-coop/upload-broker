@@ -31,6 +31,7 @@ def send(storage: Storage) -> tuple[str, str, list[Part]]:
 
 
 def test_client_targets_the_configured_endpoint(settings: Settings) -> None:
+    """The S3 client uses the configured endpoint and region."""
     client = s3_client(settings)
     assert client.meta.endpoint_url == settings.s3_endpoint_url
     assert client.meta.region_name == "us-east-1"
@@ -48,6 +49,7 @@ def test_client_targets_the_configured_endpoint(settings: Settings) -> None:
 def test_part_size_fits_the_file_in_the_allowed_parts(
     storage: Storage, size: int, max_parts: int, part_size: int
 ) -> None:
+    """The part size is the smallest one that fits the file in the allowed number of parts."""
     storage.part_size_min = 64 * MIB
     storage.max_parts = max_parts
     assert storage.part_size(size) == part_size
@@ -55,12 +57,14 @@ def test_part_size_fits_the_file_in_the_allowed_parts(
 
 
 def test_file_needing_parts_larger_than_5_gib_is_refused(storage: Storage) -> None:
+    """Files that need parts larger than 5 GiB are refused."""
     storage.max_parts = 10
     with pytest.raises(TooLarge):
         storage.part_size(MAX_PART_SIZE * 10 + 1)
 
 
 def test_object_keys_use_the_prefix(storage: Storage) -> None:
+    """Object keys start with the configured prefix and end with .zip."""
     storage.prefix = "archives/"
     key, _ = storage.start("workspace-1")
     assert key.startswith("archives/")
@@ -68,6 +72,7 @@ def test_object_keys_use_the_prefix(storage: Storage) -> None:
 
 
 def test_presigned_urls_target_one_part_each(storage: Storage) -> None:
+    """Each presigned URL targets its own part, and expires as requested."""
     key, upload_id = storage.start("workspace-1")
     parts = storage.presign_parts(key, upload_id, [1, 2], EXPIRATION)
 
@@ -78,6 +83,7 @@ def test_presigned_urls_target_one_part_each(storage: Storage) -> None:
 
 
 def test_complete_assembles_the_parts_sent_by_the_client(storage: Storage) -> None:
+    """Completing assembles the parts into an object that keeps the source id in its metadata."""
     key, upload_id, parts = send(storage)
     assert storage.received_parts(key, upload_id) == parts
 
@@ -89,12 +95,14 @@ def test_complete_assembles_the_parts_sent_by_the_client(storage: Storage) -> No
 
 
 def test_completing_twice_succeeds(storage: Storage) -> None:
+    """Completing an upload twice with the same parts succeeds."""
     key, upload_id, parts = send(storage)
     storage.complete(key, upload_id, parts, len(DATA))
     storage.complete(key, upload_id, parts, len(DATA))
 
 
 def test_completing_again_with_other_parts_fails(storage: Storage) -> None:
+    """Completing an upload again with other parts fails."""
     key, upload_id, parts = send(storage)
     storage.complete(key, upload_id, parts, len(DATA))
     with pytest.raises(UploadNotFound):
@@ -102,28 +110,33 @@ def test_completing_again_with_other_parts_fails(storage: Storage) -> None:
 
 
 def test_parts_different_from_the_received_ones_are_refused(storage: Storage) -> None:
+    """Parts that differ from the ones the bucket received are refused."""
     key, upload_id, parts = send(storage)
     with pytest.raises(PartsMismatch):
         storage.complete(key, upload_id, [parts[0], Part(2, '"0"')], len(DATA))
 
 
 def test_object_of_another_size_than_announced_is_refused(storage: Storage) -> None:
+    """An assembled object of another size than announced is refused."""
     key, upload_id, parts = send(storage)
     with pytest.raises(SizeMismatch):
         storage.complete(key, upload_id, parts, len(DATA) + 1)
 
 
 def test_unknown_upload_cannot_be_completed(storage: Storage) -> None:
+    """An unknown upload cannot be completed."""
     with pytest.raises(UploadNotFound):
         storage.complete("missing.zip", "unknown", [Part(1, '"0"')], 1)
 
 
 def test_unknown_upload_has_no_received_parts(storage: Storage) -> None:
+    """Listing the parts of an unknown upload fails."""
     with pytest.raises(UploadNotFound):
         storage.received_parts("missing.zip", "unknown")
 
 
 def test_other_errors_while_listing_parts_are_raised(storage: Storage) -> None:
+    """S3 errors other than a missing upload are raised when listing parts."""
     with Stubber(storage.client) as stubber:
         stubber.add_client_error("list_parts", service_error_code="AccessDenied")
         with pytest.raises(ClientError):
@@ -131,6 +144,7 @@ def test_other_errors_while_listing_parts_are_raised(storage: Storage) -> None:
 
 
 def test_other_errors_while_checking_the_object_are_raised(storage: Storage) -> None:
+    """S3 errors other than a missing object are raised when checking the assembled object."""
     with Stubber(storage.client) as stubber:
         stubber.add_client_error("list_parts", service_error_code="NoSuchUpload")
         stubber.add_client_error(

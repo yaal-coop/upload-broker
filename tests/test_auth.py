@@ -17,6 +17,7 @@ from upload_broker.settings import Settings
 
 @pytest.fixture
 def validator(iam_server: Server, broker: Any) -> AudienceIntrospectTokenValidator:
+    """Token validator that introspects at the test authorization server."""
     return AudienceIntrospectTokenValidator(
         f"{iam_server.url}oauth/introspect",
         broker.client_id,
@@ -28,6 +29,7 @@ def validator(iam_server: Server, broker: Any) -> AudienceIntrospectTokenValidat
 
 @pytest.fixture
 def client(validator: AudienceIntrospectTokenValidator) -> TestClient:
+    """Client of an application with a single route protected by a bearer token."""
     app = FastAPI()
     authentication = BearerAuthentication(validator, SCOPE)
 
@@ -41,6 +43,7 @@ def client(validator: AudienceIntrospectTokenValidator) -> TestClient:
 def test_valid_token_gives_its_subject(
     client: TestClient, iam_server: Server, user: Any, migrator: Any, broker: Any
 ) -> None:
+    """A valid token is accepted, and gives its subject."""
     response = client.get(
         "/subject", headers=bearer(iam_server, user, migrator, broker)
     )
@@ -49,12 +52,14 @@ def test_valid_token_gives_its_subject(
 
 
 def test_missing_token_is_refused(client: TestClient) -> None:
+    """A request without token answers 401 with a Bearer challenge."""
     response = client.get("/subject")
     assert response.status_code == 401
     assert response.headers["WWW-Authenticate"] == "Bearer"
 
 
 def test_unknown_token_is_refused(client: TestClient) -> None:
+    """An unknown token answers 401 invalid_token."""
     response = client.get("/subject", headers={"Authorization": "Bearer unknown"})
     assert response.status_code == 401
     assert response.json() == {"detail": "invalid_token"}
@@ -63,6 +68,7 @@ def test_unknown_token_is_refused(client: TestClient) -> None:
 def test_expired_token_is_refused(
     client: TestClient, iam_server: Server, user: Any, migrator: Any, broker: Any
 ) -> None:
+    """An expired token is refused."""
     issued = datetime.datetime.now(datetime.UTC) - datetime.timedelta(hours=2)
     headers = bearer(iam_server, user, migrator, broker, issue_date=issued)
     assert client.get("/subject", headers=headers).status_code == 401
@@ -71,6 +77,7 @@ def test_expired_token_is_refused(
 def test_revoked_token_is_refused(
     client: TestClient, iam_server: Server, user: Any, migrator: Any, broker: Any
 ) -> None:
+    """A revoked token is refused."""
     revoked = datetime.datetime.now(datetime.UTC)
     headers = bearer(iam_server, user, migrator, broker, revokation_date=revoked)
     assert client.get("/subject", headers=headers).status_code == 401
@@ -79,6 +86,7 @@ def test_revoked_token_is_refused(
 def test_token_meant_for_another_service_is_refused(
     client: TestClient, iam_server: Server, user: Any, migrator: Any, broker: Any
 ) -> None:
+    """A token whose audience does not contain the service is refused."""
     headers = bearer(iam_server, user, migrator, broker, audience=[migrator])
     assert client.get("/subject", headers=headers).status_code == 401
 
@@ -91,6 +99,7 @@ def test_token_without_the_service_audience_is_refused(
     migrator: Any,
     broker: Any,
 ) -> None:
+    """A token is refused when the service expects another audience."""
     validator.audience = "another-service"
     headers = bearer(iam_server, user, migrator, broker)
     assert client.get("/subject", headers=headers).status_code == 401
@@ -99,6 +108,7 @@ def test_token_without_the_service_audience_is_refused(
 def test_token_with_a_single_audience_string_is_accepted(
     validator: AudienceIntrospectTokenValidator,
 ) -> None:
+    """An audience given as a single string is accepted."""
     token = {"active": True, "scope": SCOPE, "aud": "upload-broker", "sub": "user"}
     validator.audience = "upload-broker"
     validator.validate_token(token, [SCOPE], None)
@@ -107,6 +117,7 @@ def test_token_with_a_single_audience_string_is_accepted(
 def test_token_without_subject_is_refused(
     client: TestClient, iam_server: Server, migrator: Any, broker: Any
 ) -> None:
+    """A token without subject is refused."""
     token = iam_server.random_token(
         subject=None, client=migrator, audience=[broker], scope=[SCOPE]
     )
@@ -117,6 +128,7 @@ def test_token_without_subject_is_refused(
 def test_token_without_the_required_scope_is_refused(
     client: TestClient, iam_server: Server, user: Any, migrator: Any, broker: Any
 ) -> None:
+    """A token without the required scope answers 403 insufficient_scope."""
     headers = bearer(iam_server, user, migrator, broker, scope=["openid"])
     response = client.get("/subject", headers=headers)
     assert response.status_code == 403
@@ -131,12 +143,14 @@ def test_wrong_service_credentials_make_the_service_unavailable(
     migrator: Any,
     broker: Any,
 ) -> None:
+    """A failed introspection, here with wrong service credentials, answers 503."""
     validator.client.client_secret = "wrong"
     headers = bearer(iam_server, user, migrator, broker)
     assert client.get("/subject", headers=headers).status_code == 503
 
 
 def test_validator_reads_its_settings(settings: Settings) -> None:
+    """The validator is built from the settings."""
     validator = AudienceIntrospectTokenValidator.from_settings(settings)
     assert validator.introspection_url == settings.introspection_url
     assert validator.audience == settings.audience

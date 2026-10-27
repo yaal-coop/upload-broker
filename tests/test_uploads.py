@@ -27,6 +27,7 @@ DATA = b"a" * 5 * MIB + b"b" * 10
 
 
 def open_upload(uploads: Uploads, size: int = len(DATA)) -> OpenedUpload:
+    """Open an upload of the given size."""
     return uploads.open(
         sub="user-1",
         source_id="workspace-1",
@@ -38,6 +39,7 @@ def open_upload(uploads: Uploads, size: int = len(DATA)) -> OpenedUpload:
 
 
 def test_open_hands_out_one_url_per_part(uploads: Uploads) -> None:
+    """Opening an upload returns one URL per part, valid for 7 days at most."""
     opened = open_upload(uploads)
 
     assert opened.part_size == 5 * MIB
@@ -48,6 +50,7 @@ def test_open_hands_out_one_url_per_part(uploads: Uploads) -> None:
 
 
 def test_open_refuses_files_too_large(uploads: Uploads) -> None:
+    """Opening an upload refuses files that need too many parts."""
     uploads.storage.max_parts = 1
     with pytest.raises(TooLarge):
         open_upload(uploads, size=6 * 1024 * MIB)
@@ -56,6 +59,7 @@ def test_open_refuses_files_too_large(uploads: Uploads) -> None:
 def test_uploaded_file_is_completed_and_handed_over_to_tribu(
     uploads: Uploads, tribu_server: FakeTribu
 ) -> None:
+    """Completing assembles the file and sends its details to Tribu."""
     opened = open_upload(uploads)
     parts = put_parts(opened.parts, DATA, opened.part_size)
 
@@ -85,6 +89,7 @@ def test_uploaded_file_is_completed_and_handed_over_to_tribu(
 def test_download_url_expires_with_the_tickets(
     uploads: Uploads, tribu_server: FakeTribu
 ) -> None:
+    """The download URL sent to Tribu lasts as long as the tickets."""
     opened = open_upload(uploads)
     uploads.complete(
         opened.ticket, "user-1", put_parts(opened.parts, DATA, opened.part_size)
@@ -98,6 +103,7 @@ def test_download_url_expires_with_the_tickets(
 def test_completing_twice_reports_the_archive_already_queued(
     uploads: Uploads,
 ) -> None:
+    """Completing twice reports the archive as already queued."""
     opened = open_upload(uploads)
     parts = put_parts(opened.parts, DATA, opened.part_size)
     uploads.complete(opened.ticket, "user-1", parts)
@@ -108,6 +114,7 @@ def test_completing_twice_reports_the_archive_already_queued(
 def test_completing_again_after_tribu_was_unavailable_hands_over_the_file(
     uploads: Uploads, tribu_server: FakeTribu
 ) -> None:
+    """Completing again after Tribu was unavailable hands the file over."""
     tribu_server.failures = [httpx2.ConnectError("connection refused")]
     opened = open_upload(uploads)
     parts = put_parts(opened.parts, DATA, opened.part_size)
@@ -119,6 +126,7 @@ def test_completing_again_after_tribu_was_unavailable_hands_over_the_file(
 
 
 def test_missing_parts_lists_only_the_parts_not_received(uploads: Uploads) -> None:
+    """Only the parts the bucket has not received get new URLs."""
     opened = open_upload(uploads)
     put_parts(opened.parts[:1], DATA, opened.part_size)
 
@@ -128,6 +136,7 @@ def test_missing_parts_lists_only_the_parts_not_received(uploads: Uploads) -> No
 
 
 def test_missing_parts_urls_expire_with_the_ticket(uploads: Uploads) -> None:
+    """New part URLs expire with the ticket."""
     opened = open_upload(uploads)
     with time_machine.travel(datetime.timedelta(days=6), tick=False):
         missing = uploads.missing_parts(opened.ticket, "user-1")
@@ -137,6 +146,7 @@ def test_missing_parts_urls_expire_with_the_ticket(uploads: Uploads) -> None:
 
 
 def test_complete_requires_every_part_in_order(uploads: Uploads) -> None:
+    """Completing requires every part, in order."""
     opened = open_upload(uploads)
     parts = put_parts(opened.parts, DATA, opened.part_size)
     with pytest.raises(PartsMismatch):
@@ -144,6 +154,7 @@ def test_complete_requires_every_part_in_order(uploads: Uploads) -> None:
 
 
 def test_purged_upload_has_no_missing_parts_to_send(uploads: Uploads) -> None:
+    """Asking for the missing parts of a purged upload fails."""
     opened = open_upload(uploads)
     ticket = decode_ticket(opened.ticket, TICKET_KEY)
     uploads.storage.client.abort_multipart_upload(
@@ -155,6 +166,7 @@ def test_purged_upload_has_no_missing_parts_to_send(uploads: Uploads) -> None:
 
 @pytest.mark.parametrize("operation", ["missing_parts", "complete"])
 def test_ticket_of_another_subject_is_refused(uploads: Uploads, operation: str) -> None:
+    """A ticket cannot be used by another subject."""
     opened = open_upload(uploads)
     arguments: list[object] = [opened.ticket, "user-2"]
     if operation == "complete":
@@ -164,5 +176,6 @@ def test_ticket_of_another_subject_is_refused(uploads: Uploads, operation: str) 
 
 
 def test_forged_ticket_is_refused(uploads: Uploads) -> None:
+    """A forged ticket is refused."""
     with pytest.raises(InvalidTicket):
         uploads.missing_parts("forged", "user-1")

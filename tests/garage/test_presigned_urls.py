@@ -51,12 +51,14 @@ def tampered(url: str) -> str:
 def test_uploaded_file_is_handed_over_to_tribu(
     uploads: Uploads, tribu_server: FakeTribu
 ) -> None:
+    """Parts sent to the presigned URLs are assembled, and Tribu can download the file."""
     opened, parts = send(uploads)
     uploads.complete(opened.ticket, "user-1", parts)
     assert [form["source-id"] for form in tribu_server.forms] == ["workspace-1"]
 
 
 def test_completing_twice_recognizes_the_assembled_file(uploads: Uploads) -> None:
+    """A second completion recognizes the object that Garage assembled."""
     opened, parts = send(uploads)
     uploads.complete(opened.ticket, "user-1", parts)
     with pytest.raises(AlreadyQueued):
@@ -64,6 +66,7 @@ def test_completing_twice_recognizes_the_assembled_file(uploads: Uploads) -> Non
 
 
 def test_download_url_serves_ranges_but_not_head(storage: Storage) -> None:
+    """The download URL serves a byte range, but refuses HEAD requests."""
     url = storage.presign_download(stored(storage), HOUR)
     response = httpx2.get(url, headers={"Range": "bytes=0-0"})
     assert response.status_code == 206
@@ -72,6 +75,7 @@ def test_download_url_serves_ranges_but_not_head(storage: Storage) -> None:
 
 
 def test_tampered_urls_are_refused(storage: Storage) -> None:
+    """Upload and download URLs with a modified signature are refused."""
     key, upload_id = storage.start("workspace-1")
     [part] = storage.presign_parts(key, upload_id, [1], HOUR)
     download = storage.presign_download(stored(storage), HOUR)
@@ -90,6 +94,7 @@ def presigned_ago(
 
 
 def test_urls_are_accepted_until_they_expire(storage: Storage) -> None:
+    """URLs signed half an hour ago for one hour still work."""
     key, upload_id = storage.start("workspace-1")
     part, download = presigned_ago(storage, HOUR / 2, key, upload_id)
     assert httpx2.put(part, content=b"a").is_success
@@ -97,6 +102,7 @@ def test_urls_are_accepted_until_they_expire(storage: Storage) -> None:
 
 
 def test_expired_urls_are_refused(storage: Storage) -> None:
+    """Upload and download URLs are refused once expired."""
     key, upload_id = storage.start("workspace-1")
     part, download = presigned_ago(storage, 2 * HOUR, key, upload_id)
     # AWS answers 403, Garage answers 400.

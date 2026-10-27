@@ -8,6 +8,7 @@ from upload_broker.settings import Settings
 
 
 def test_health_returns_ok(settings: Settings) -> None:
+    """The health route answers ok."""
     client = TestClient(create_fastapi(settings))
     response = client.get("/health")
     assert response.status_code == 200
@@ -15,6 +16,7 @@ def test_health_returns_ok(settings: Settings) -> None:
 
 
 def test_served_app_answers_behind_a_trusted_proxy(settings: Settings) -> None:
+    """The served application answers requests forwarded by a trusted proxy."""
     settings.trusted_proxies = "testclient"
     client = TestClient(create_app(settings))
     response = client.get("/health", headers={"X-Forwarded-For": "192.0.2.1"})
@@ -24,6 +26,7 @@ def test_served_app_answers_behind_a_trusted_proxy(settings: Settings) -> None:
 def test_served_app_reads_settings_from_the_environment(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
+    """The served application reads its settings from the environment."""
     monkeypatch.setenv("UPLOAD_BROKER_S3_BUCKET", "bucket")
     monkeypatch.setenv("UPLOAD_BROKER_S3_ACCESS_KEY_ID", "key")
     monkeypatch.setenv("UPLOAD_BROKER_S3_SECRET_ACCESS_KEY", "secret")

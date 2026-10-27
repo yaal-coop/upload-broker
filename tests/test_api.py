@@ -32,6 +32,7 @@ OPEN_BODY: dict[str, Any] = {
 def open_upload(
     api: TestClient, headers: dict[str, str], **overrides: Any
 ) -> dict[str, Any]:
+    """Open an upload through the API, and return the response."""
     response = api.post("/uploads", json=OPEN_BODY | overrides, headers=headers)
     assert response.status_code == 201
     opened: dict[str, Any] = response.json()
@@ -41,6 +42,7 @@ def open_upload(
 def send_parts(
     opened: dict[str, Any], parts: list[dict[str, Any]]
 ) -> list[dict[str, Any]]:
+    """Upload the data to the given part URLs, and return the parts to complete."""
     presigned = [PresignedPart(number=p["number"], url=p["url"]) for p in parts]
     sent = put_parts(presigned, DATA, opened["part_size"])
     return [{"number": part.number, "etag": part.etag} for part in sent]
@@ -52,6 +54,7 @@ def test_file_is_uploaded_completed_and_handed_over_to_tribu(
     settings: Settings,
     tribu_server: FakeTribu,
 ) -> None:
+    """A file sent through the routes is assembled in the bucket and handed over to Tribu."""
     opened = open_upload(api, headers)
     assert opened["part_size"] == 5 * MIB
     assert [part["number"] for part in opened["parts"]] == [1, 2]
@@ -73,6 +76,7 @@ def test_file_is_uploaded_completed_and_handed_over_to_tribu(
 def test_completing_twice_reports_the_archive_already_queued(
     api: TestClient, headers: dict[str, str]
 ) -> None:
+    """Completing an upload twice answers 409 already_queued the second time."""
     opened = open_upload(api, headers)
     body = {"ticket": opened["ticket"], "parts": send_parts(opened, opened["parts"])}
     assert api.post("/uploads/complete", json=body, headers=headers).status_code == 204
@@ -85,6 +89,7 @@ def test_completing_twice_reports_the_archive_already_queued(
 def test_completing_again_after_tribu_was_unavailable_succeeds(
     api: TestClient, headers: dict[str, str], tribu_server: FakeTribu
 ) -> None:
+    """Completing answers 503 while Tribu is unavailable, and succeeds when retried."""
     tribu_server.failures = [httpx2.Response(503)]
     opened = open_upload(api, headers)
     body = {"ticket": opened["ticket"], "parts": send_parts(opened, opened["parts"])}
@@ -99,6 +104,7 @@ def test_completing_again_after_tribu_was_unavailable_succeeds(
 def test_archive_refused_by_tribu_is_reported(
     api: TestClient, headers: dict[str, str], tribu_server: FakeTribu
 ) -> None:
+    """Completing answers 502 when Tribu refuses the file."""
     tribu_server.failures = [httpx2.Response(400)]
     opened = open_upload(api, headers)
     body = {"ticket": opened["ticket"], "parts": send_parts(opened, opened["parts"])}
@@ -111,6 +117,7 @@ def test_archive_refused_by_tribu_is_reported(
 def test_resume_returns_only_the_missing_parts(
     api: TestClient, headers: dict[str, str]
 ) -> None:
+    """Resuming an upload returns URLs for the missing parts only."""
     opened = open_upload(api, headers)
     send_parts(opened, opened["parts"][:1])
 
@@ -123,6 +130,7 @@ def test_resume_returns_only_the_missing_parts(
 
 
 def test_requests_without_token_are_refused(api: TestClient) -> None:
+    """Requests without a bearer token answer 401."""
     assert api.post("/uploads", json=OPEN_BODY).status_code == 401
 
 
@@ -138,6 +146,7 @@ def test_requests_without_token_are_refused(api: TestClient) -> None:
 def test_invalid_upload_requests_are_refused(
     api: TestClient, headers: dict[str, str], overrides: dict[str, Any]
 ) -> None:
+    """Upload requests with invalid fields answer 422."""
     response = api.post("/uploads", json=OPEN_BODY | overrides, headers=headers)
     assert response.status_code == 422
 
@@ -145,6 +154,7 @@ def test_invalid_upload_requests_are_refused(
 def test_file_too_large_is_refused(
     api: TestClient, headers: dict[str, str], settings: Settings
 ) -> None:
+    """Files that need more parts than allowed answer 413."""
     settings.max_parts = 1
     small_api = TestClient(create_fastapi(settings))
     response = small_api.post(
@@ -157,6 +167,7 @@ def test_file_too_large_is_refused(
 def test_completing_with_missing_parts_is_refused(
     api: TestClient, headers: dict[str, str]
 ) -> None:
+    """Completing with missing parts answers 409 parts_mismatch."""
     opened = open_upload(api, headers)
     parts = send_parts(opened, opened["parts"])
     response = api.post(
@@ -171,6 +182,7 @@ def test_completing_with_missing_parts_is_refused(
 def test_file_of_another_size_than_announced_is_refused(
     api: TestClient, headers: dict[str, str]
 ) -> None:
+    """Completing a file of another size than announced answers 409 size_mismatch."""
     opened = open_upload(api, headers, size=len(DATA) + 1)
     response = api.post(
         "/uploads/complete",
@@ -182,6 +194,7 @@ def test_file_of_another_size_than_announced_is_refused(
 
 
 def test_invalid_ticket_is_refused(api: TestClient, headers: dict[str, str]) -> None:
+    """A forged ticket answers 400 invalid_ticket."""
     response = api.post("/uploads/parts", json={"ticket": "forged"}, headers=headers)
     assert response.status_code == 400
     assert response.json() == {"detail": "invalid_ticket"}
@@ -194,6 +207,7 @@ def test_ticket_of_another_user_is_refused(
     migrator: Any,
     broker: Any,
 ) -> None:
+    """A ticket used by another user answers 403 ticket_owner_mismatch."""
     opened = open_upload(api, headers)
     other = bearer(iam_server, iam_server.random_user(), migrator, broker)
     response = api.post(
@@ -206,6 +220,7 @@ def test_ticket_of_another_user_is_refused(
 def test_purged_upload_is_not_found(
     api: TestClient, headers: dict[str, str], settings: Settings
 ) -> None:
+    """An upload removed from the bucket answers 404 upload_not_found."""
     opened = open_upload(api, headers)
     ticket = decode_ticket(opened["ticket"], settings.ticket_key.get_secret_value())
     s3_client(settings).abort_multipart_upload(

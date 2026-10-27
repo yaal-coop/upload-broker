@@ -43,6 +43,7 @@ def answering(response: httpx2.Response | httpx2.HTTPError) -> Tribu:
 def test_archive_is_sent_as_a_form_with_the_secret_key(
     tribu: Tribu, tribu_server: FakeTribu
 ) -> None:
+    """The archive is sent as a multipart form with the secret key, and without Authorization header."""
     tribu_server.failures = [httpx2.Response(201)]
     tribu.add(TICKET, FILE_URL)
 
@@ -66,10 +67,12 @@ def test_archive_is_sent_as_a_form_with_the_secret_key(
 
 @pytest.mark.parametrize("status_code", [200, 201, 204])
 def test_successful_answers_are_accepted(status_code: int) -> None:
+    """Any successful answer is accepted."""
     answering(httpx2.Response(status_code)).add(TICKET, FILE_URL)
 
 
 def test_source_already_in_migration_is_reported() -> None:
+    """A 409 answer means a migration is already in progress for the source."""
     with pytest.raises(AlreadyQueued):
         answering(httpx2.Response(409)).add(TICKET, FILE_URL)
 
@@ -78,6 +81,7 @@ def test_source_already_in_migration_is_reported() -> None:
 def test_refused_archives_are_reported_and_logged(
     status_code: int, caplog: pytest.LogCaptureFixture
 ) -> None:
+    """Client errors are reported as refusals, and logged without the secret key."""
     tribu = answering(httpx2.Response(status_code, text="invalid owner"))
     with caplog.at_level(logging.WARNING), pytest.raises(TribuRejected):
         tribu.add(TICKET, FILE_URL)
@@ -98,5 +102,6 @@ def test_refused_archives_are_reported_and_logged(
 def test_unavailable_tribu_is_reported(
     failure: httpx2.Response | httpx2.HTTPError,
 ) -> None:
+    """Server errors, connection errors and timeouts mean Tribu is unavailable."""
     with pytest.raises(TribuUnavailable):
         answering(failure).add(TICKET, FILE_URL)

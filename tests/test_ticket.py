@@ -16,6 +16,7 @@ NOW = datetime.datetime(2026, 10, 22, 12, tzinfo=datetime.UTC)
 
 
 def make_ticket(**overrides: object) -> Ticket:
+    """Build a valid ticket, with some values replaced."""
     values: dict[str, object] = {
         "sub": "user-1",
         "exp": int((NOW + datetime.timedelta(days=7)).timestamp()),
@@ -33,18 +34,21 @@ def make_ticket(**overrides: object) -> Ticket:
 
 @time_machine.travel(NOW)
 def test_ticket_reads_back_its_content() -> None:
+    """A signed ticket decodes back to the same content."""
     ticket = make_ticket()
     assert decode_ticket(encode_ticket(ticket, TICKET_KEY), TICKET_KEY) == ticket
 
 
 @time_machine.travel(NOW)
 def test_ticket_signed_with_another_key_is_rejected() -> None:
+    """A ticket signed with another key is rejected."""
     value = encode_ticket(make_ticket(), "another-key-for-the-tests-0123456789")
     with pytest.raises(InvalidTicket):
         decode_ticket(value, TICKET_KEY)
 
 
 def test_expired_ticket_is_rejected() -> None:
+    """An expired ticket is rejected."""
     with time_machine.travel(NOW):
         value = encode_ticket(make_ticket(), TICKET_KEY)
     with time_machine.travel(NOW + datetime.timedelta(days=8)):
@@ -53,12 +57,14 @@ def test_expired_ticket_is_rejected() -> None:
 
 
 def test_garbage_is_rejected() -> None:
+    """A value that is not a ticket is rejected."""
     with pytest.raises(InvalidTicket):
         decode_ticket("not a ticket", TICKET_KEY)
 
 
 @time_machine.travel(NOW)
 def test_signed_ticket_with_missing_fields_is_rejected() -> None:
+    """A correctly signed ticket with missing fields is rejected."""
     value = jwt.encode(
         {"alg": "HS256"},
         {"sub": "user-1", "exp": int(NOW.timestamp()) + 60},
@@ -70,4 +76,5 @@ def test_signed_ticket_with_missing_fields_is_rejected() -> None:
 
 @pytest.mark.parametrize(("size", "part_count"), [(1, 1), (4, 1), (5, 2), (8, 2)])
 def test_part_count_covers_the_whole_file(size: int, part_count: int) -> None:
+    """The parts cover the whole file, and only the last one can be shorter."""
     assert make_ticket(size=size, part_size=4).part_count == part_count

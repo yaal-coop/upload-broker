@@ -99,6 +99,7 @@ class CompleteRequest(BaseModel):
 
 
 def part_urls(parts: list[PresignedPart]) -> list[PartUrl]:
+    """Turn presigned parts into the response format."""
     return [PartUrl(number=part.number, url=part.url) for part in parts]
 
 
@@ -142,6 +143,8 @@ def uploads_router(uploads: Uploads, authentication: BearerAuthentication) -> AP
 def error_handler(
     status_code: int, code: str
 ) -> Callable[[Request, Exception], JSONResponse]:
+    """Build a handler that answers with the status and the error code."""
+
     def handler(request: Request, exc: Exception) -> JSONResponse:
         return JSONResponse(status_code=status_code, content={"detail": code})
 
