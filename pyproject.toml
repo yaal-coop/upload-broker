@@ -60,6 +60,7 @@ source = [
     "upload_broker",
     "tests",
 ]
+omit = ["tests/garage/*"]
 branch = true
 
 [tool.coverage.report]
@@ -104,6 +105,8 @@ docstring-code-format = true
 
 [tool.pytest.ini_options]
 addopts = "--showlocals"
+testpaths = ["tests"]
+norecursedirs = [".*", "build", "dist", "tests/garage"]
 
 [tool.tox]
 requires = ["tox>=4.19"]

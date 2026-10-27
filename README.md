@@ -100,3 +100,10 @@ With Podman, set `COMPOSE="podman compose"` before running the script.
 
 The development S3 endpoint is `http://127.0.0.1:3900`, in the `garage` region, with the `uploads` bucket.
 Its access key is `GK000000000000000000000000` and its secret key is 64 zeros.
+
+The unit tests simulate S3 with [moto](https://github.com/getmoto/moto), which does not check signatures nor expiration dates.
+The tests of the presigned URLs run against Garage, and are not part of the default test run:
+
+```console
+$ uv run pytest tests/garage
+```

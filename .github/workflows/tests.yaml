@@ -30,6 +30,28 @@ jobs:
       - name: Run tests
         run: uv run pytest --cov --cov-fail-under=100 --cov-report term:skip-covered
 
+  integration:
+    name: garage tests
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Install uv
+        uses: astral-sh/setup-uv@1c37ad07a6a961277cf70c0d37d6f313000f5884 # v10.3.0
+        with:
+          version: "0.13.4"
+          enable-cache: true
+      - name: Start Garage
+        run: docker compose up --detach
+      - name: Create the bucket and the key
+        run: dev/garage-init.sh
+      - name: Run tests
+        run: uv run pytest tests/garage
+      - name: Show Garage logs
+        if: failure()
+        run: docker compose logs garage
+
   style:
     runs-on: ubuntu-24.04
     steps:
@@ -84,7 +106,7 @@ jobs:
 
   all-checks:
     if: always()
-    needs: [tests, style, container]
+    needs: [tests, integration, style, container]
     runs-on: ubuntu-24.04
     steps:
       - name: Fail if a needed job did not succeed
