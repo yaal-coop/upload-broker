@@ -38,14 +38,9 @@ def s3_endpoint_url() -> Iterator[str]:
     server.stop()
 
 
-@pytest.fixture
-def settings(s3_endpoint_url: str) -> Settings:
-    settings = Settings(
-        s3_endpoint_url=s3_endpoint_url,
-        s3_region="us-east-1",
-        s3_bucket=f"test-{uuid.uuid4()}",
-        s3_access_key_id="test",
-        s3_secret_access_key=SecretStr("test"),
+def make_settings(**s3: Any) -> Settings:
+    """Build the settings of the tests, on top of the given S3 settings."""
+    return Settings(
         ticket_key=SecretStr(TICKET_KEY),
         part_size_min=5 * MIB,
         introspection_url="http://localhost/introspect",
@@ -55,6 +50,18 @@ def settings(s3_endpoint_url: str) -> Settings:
         required_scope=SCOPE,
         tribu_url="http://tribu.test/api",
         tribu_secret_key=SecretStr(TRIBU_SECRET_KEY),
+        **s3,
+    )
+
+
+@pytest.fixture
+def settings(s3_endpoint_url: str) -> Settings:
+    settings = make_settings(
+        s3_endpoint_url=s3_endpoint_url,
+        s3_region="us-east-1",
+        s3_bucket=f"test-{uuid.uuid4()}",
+        s3_access_key_id="test",
+        s3_secret_access_key=SecretStr("test"),
     )
     s3_client(settings).create_bucket(Bucket=settings.s3_bucket)
     return settings
@@ -65,6 +72,7 @@ def storage(settings: Settings) -> Storage:
     return Storage(
         s3_client(settings),
         settings.s3_bucket,
+        prefix=settings.object_prefix,
         part_size_min=settings.part_size_min,
         max_parts=settings.max_parts,
     )
