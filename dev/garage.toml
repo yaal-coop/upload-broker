@@ -11,3 +11,7 @@ rpc_secret = "0000000000000000000000000000000000000000000000000000000000000000"
 [s3_api]
 s3_region = "garage"
 api_bind_addr = "[::]:3900"
+
+[admin]
+api_bind_addr = "[::]:3903"
+admin_token = "dev-admin-token"

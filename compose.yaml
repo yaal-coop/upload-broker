@@ -1,11 +1,39 @@
+x-dev-image: &dev-image
+  build:
+    context: .
+    dockerfile: Containerfile
+    target: dev
+  image: upload-broker:dev
+
 services:
   garage:
     image: docker.io/dxflrs/garage:v2.4.1@sha256:9c96caa2612d3411acc5b0e6701fb238dbfba33e533a6d7d3d811a4b12d0d020
     ports:
       - "127.0.0.1:3900:3900"
+      - "127.0.0.1:3903:3903"
     volumes:
       - ./dev/garage.toml:/etc/garage.toml:ro
       - garage:/var/lib/garage
+    networks:
+      default:
+        aliases:
+          - garage.localhost
+    healthcheck:
+      test: ["CMD", "/garage", "status"]
+      interval: 30s
+      start_period: 30s
+      start_interval: 1s
+
+  garage-init:
+    <<: *dev-image
+    entrypoint: ["python", "dev/garage_init.py"]
+    environment:
+      GARAGE_ADMIN_URL: http://garage:3903
+    volumes:
+      - ./dev:/app/dev:ro
+    depends_on:
+      garage:
+        condition: service_healthy
 
 volumes:
   garage:
