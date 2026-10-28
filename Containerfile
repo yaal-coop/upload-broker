@@ -10,6 +10,15 @@ RUN uv sync --locked --no-dev --no-install-project
 COPY src ./src
 RUN uv sync --locked --no-dev --no-editable
 
+FROM builder AS dev
+
+RUN uv sync --locked --no-dev --group compose
+ENV PATH="/app/.venv/bin:$PATH"
+
+EXPOSE 8080
+ENTRYPOINT ["granian", "--interface", "asgi", "--factory", "upload_broker.app:create_app", "--host", "0.0.0.0"]
+CMD ["--port", "8080"]
+
 FROM python:3.14-slim-trixie@sha256:51dafde81dbdb6ebde285137a295cf18a47ca95234fe388a343719cb97305b3d
 
 COPY --from=builder /app/.venv /app/.venv

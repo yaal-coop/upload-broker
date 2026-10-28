@@ -26,7 +26,12 @@ dependencies = [
 repository = "https://github.com/yaal-coop/upload-broker"
 
 [dependency-groups]
+compose = [
+    "granian[reload]>=2.8.4",
+    "python-multipart>=0.0.32",
+]
 dev = [
+    {include-group = "compose"},
     "moto[server]>=5.2.3",
     "mypy>=2.4.0",
     "prek>=0.5.5",
@@ -48,7 +53,7 @@ exclude-newer-package = { pytest-iam = false }
 plugins = [
   "pydantic.mypy"
 ]
-files = ["src", "tests"]
+files = ["src", "tests", "dev"]
 strict = true
 
 [tool.pydantic-mypy]
@@ -59,8 +64,9 @@ init_typed = true
 source = [
     "upload_broker",
     "tests",
+    "dev",
 ]
-omit = ["tests/garage/*"]
+omit = ["tests/garage/*", "dev/garage_init.py"]
 branch = true
 
 [tool.coverage.report]
