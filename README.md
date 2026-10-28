@@ -88,22 +88,69 @@ $ uv run pytest
 $ uv run prek run --all-files
 ```
 
-`compose.yaml` starts a single-node [Garage](https://garagehq.deuxfleurs.fr/) S3 server.
-After the first start, create the bucket and the development key:
+### Local stack
+
+`compose.yaml` starts upload-broker and the services it needs:
 
 ```console
-$ docker compose up --detach
-$ dev/garage-init.sh
+$ docker compose up --wait
 ```
 
-With Podman, set `COMPOSE="podman compose"` before running the script.
+| Service | Address on the host | Role |
+|---|---|---|
+| `upload-broker` | `http://127.0.0.1:8090` | The broker. It reloads when `src/` changes. |
+| `garage` | `http://garage.localhost:3900` | Single-node [Garage](https://garagehq.deuxfleurs.fr/) S3 server. Its admin API is on `http://127.0.0.1:3903`. |
+| `garage-init` | | Creates the bucket and the key, then stops. |
+| `mock-tribu` | `http://127.0.0.1:8081` | Fake Tribu migration API. It reloads when `dev/` changes. |
 
-The development S3 endpoint is `http://127.0.0.1:3900`, in the `garage` region, with the `uploads` bucket.
+The S3 endpoint is `http://garage.localhost:3900`, in the `garage` region, with the `uploads` bucket.
 Its access key is `GK000000000000000000000000` and its secret key is 64 zeros.
+Presigned URLs point to `garage.localhost`, so they work in the containers and on the host.
+Browsers and most Linux systems resolve `*.localhost` to the loopback address.
+If yours does not, add `127.0.0.1 garage.localhost` to `/etc/hosts`.
 
-The unit tests simulate S3 with [moto](https://github.com/getmoto/moto), which does not check signatures nor expiration dates.
-The tests of the presigned URLs run against Garage, and are not part of the default test run:
+The authorization server is not part of the stack yet.
+Until it is, the routes that need a token answer `503`.
+
+### Fake Tribu
+
+`mock-tribu` answers `POST /migration/add` like Tribu.
+It checks the secret key, the fields and the file size, then downloads the file in the background and checks its MD5.
+
+| Route | Effect |
+|---|---|
+| `GET /migrations` | Lists the received archives with their status: `queued`, `downloaded`, `checksum_mismatch` or `download_failed`. |
+| `DELETE /migrations` | Forgets the received archives. |
+| `POST /failures` | Queues a status for the next `POST /migration/add`. |
+| `DELETE /failures` | Empties the queue. |
+
+For example, to make Tribu answer `503` once:
 
 ```console
+$ curl -X POST http://127.0.0.1:8081/failures -H 'Content-Type: application/json' -d '{"status": 503}'
+```
+
+To make Tribu unreachable, stop it with `docker compose stop mock-tribu`.
+
+### With drive-migrator
+
+`compose.drive-migrator.yaml` connects the stack to the network of the drive-migrator development stack.
+Start drive-migrator first, then:
+
+```console
+$ docker compose -f compose.yaml -f compose.drive-migrator.yaml up --wait
+```
+
+From the drive-migrator containers, the broker is `http://upload-broker:8080`, the fake Tribu is `http://mock-tribu:8081` and Garage is `http://garage.localhost:3900`.
+Stop upload-broker before drive-migrator, or Docker cannot remove the drive-migrator network.
+
+### Garage tests
+
+The unit tests simulate S3 with [moto](https://github.com/getmoto/moto), which does not check signatures nor expiration dates.
+The tests of the presigned URLs run against Garage on `http://127.0.0.1:3900`, and are not part of the default test run:
+
+```console
+$ docker compose up --detach --wait garage
+$ uv run dev/garage_init.py
 $ uv run pytest tests/garage
 ```
