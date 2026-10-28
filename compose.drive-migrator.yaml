@@ -1,0 +1,24 @@
+networks:
+  drive-migrator:
+    name: drive-migrator_default
+    external: true
+
+services:
+  garage:
+    networks:
+      default:
+        aliases:
+          - garage.localhost
+      drive-migrator:
+        aliases:
+          - garage.localhost
+
+  mock-tribu:
+    networks:
+      default: {}
+      drive-migrator: {}
+
+  upload-broker:
+    networks:
+      default: {}
+      drive-migrator: {}
