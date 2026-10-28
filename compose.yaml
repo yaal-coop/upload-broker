@@ -35,5 +35,64 @@ services:
       garage:
         condition: service_healthy
 
+  mock-tribu:
+    <<: *dev-image
+    entrypoint:
+      - granian
+      - --interface
+      - asgi
+      - --factory
+      - dev.mock_tribu:create_app
+      - --host
+      - 0.0.0.0
+      - --port
+      - "8081"
+      - --reload
+      - --reload-paths
+      - /app/dev
+    environment:
+      MOCK_TRIBU_SECRET_KEY: dev-tribu-secret-key
+    ports:
+      - "127.0.0.1:8081:8081"
+    volumes:
+      - ./dev:/app/dev:ro
+    healthcheck:
+      test: ["CMD", "python", "-c", "import httpx2; httpx2.get('http://127.0.0.1:8081/health').raise_for_status()"]
+      interval: 30s
+      start_period: 30s
+      start_interval: 1s
+
+  upload-broker:
+    <<: *dev-image
+    command: ["--port", "8080", "--reload", "--reload-paths", "/app/src"]
+    environment:
+      UPLOAD_BROKER_S3_ENDPOINT_URL: http://garage.localhost:3900
+      UPLOAD_BROKER_S3_REGION: garage
+      UPLOAD_BROKER_S3_BUCKET: uploads
+      UPLOAD_BROKER_S3_ACCESS_KEY_ID: GK000000000000000000000000
+      UPLOAD_BROKER_S3_SECRET_ACCESS_KEY: "0000000000000000000000000000000000000000000000000000000000000000"
+      UPLOAD_BROKER_TICKET_KEY: dev-ticket-key-not-a-secret-0123456789
+      UPLOAD_BROKER_INTROSPECTION_URL: http://menshen:8000/introspect
+      UPLOAD_BROKER_CLIENT_ID: upload-broker
+      UPLOAD_BROKER_CLIENT_SECRET: dev-client-secret
+      UPLOAD_BROKER_AUDIENCE: upload-broker
+      UPLOAD_BROKER_REQUIRED_SCOPE: depot:archive:create
+      UPLOAD_BROKER_TRIBU_URL: http://mock-tribu:8081/
+      UPLOAD_BROKER_TRIBU_SECRET_KEY: dev-tribu-secret-key
+    ports:
+      - "127.0.0.1:8090:8080"
+    volumes:
+      - ./src:/app/src:ro
+    healthcheck:
+      test: ["CMD", "python", "-c", "import httpx2; httpx2.get('http://127.0.0.1:8080/health').raise_for_status()"]
+      interval: 30s
+      start_period: 30s
+      start_interval: 1s
+    depends_on:
+      garage-init:
+        condition: service_completed_successfully
+      mock-tribu:
+        condition: service_healthy
+
 volumes:
   garage:
