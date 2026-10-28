@@ -96,6 +96,8 @@ $ uv run prek run --all-files
 $ docker compose up --wait
 ```
 
+Stop it with `docker compose down`. Add `--volumes` to also delete the Garage data.
+
 | Service | Address on the host | Role |
 |---|---|---|
 | `upload-broker` | `http://127.0.0.1:8090` | The broker. It reloads when `src/` changes. |
@@ -106,16 +108,18 @@ $ docker compose up --wait
 The S3 endpoint is `http://garage.localhost:3900`, in the `garage` region, with the `uploads` bucket.
 Its access key is `GK000000000000000000000000` and its secret key is 64 zeros.
 Presigned URLs point to `garage.localhost`, so they work in the containers and on the host.
+In the containers, curl does not use DNS for `*.localhost` and cannot reach Garage. Python and wget can.
 Browsers and most Linux systems resolve `*.localhost` to the loopback address.
 If yours does not, add `127.0.0.1 garage.localhost` to `/etc/hosts`.
 
 The authorization server is not part of the stack yet.
-Until it is, the routes that need a token answer `503`.
+Until it is, the routes that need a token answer `503` when a token is sent, and `401` otherwise.
 
 ### Fake Tribu
 
 `mock-tribu` answers `POST /migration/add` like Tribu.
 It checks the secret key, the fields and the file size, then downloads the file in the background and checks its MD5.
+It refuses a source it already knows with `409`, whatever its status, until the source is forgotten.
 
 | Route | Effect |
 |---|---|
@@ -131,6 +135,7 @@ $ curl -X POST http://127.0.0.1:8081/failures -H 'Content-Type: application/json
 ```
 
 To make Tribu unreachable, stop it with `docker compose stop mock-tribu`.
+The fake Tribu keeps its state in memory. It loses it when it reloads or restarts.
 
 ### With drive-migrator
 
@@ -142,7 +147,7 @@ $ docker compose -f compose.yaml -f compose.drive-migrator.yaml up --wait
 ```
 
 From the drive-migrator containers, the broker is `http://upload-broker:8080`, the fake Tribu is `http://mock-tribu:8081` and Garage is `http://garage.localhost:3900`.
-Stop upload-broker before drive-migrator, or Docker cannot remove the drive-migrator network.
+Stop upload-broker with `docker compose down` before drive-migrator, or Docker cannot remove the drive-migrator network.
 
 ### Garage tests
 
