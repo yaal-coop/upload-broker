@@ -4,6 +4,7 @@ x-dev-image: &dev-image
     dockerfile: Containerfile
     target: dev
   image: upload-broker:dev
+  pull_policy: build
 
 services:
   garage:
