@@ -42,10 +42,14 @@ jobs:
         with:
           version: "0.13.4"
           enable-cache: true
+      - name: Build the development image
+        run: docker compose build
       - name: Start Garage
-        run: docker compose up --detach
+        run: docker compose up --detach --wait garage
       - name: Create the bucket and the key
-        run: dev/garage-init.sh
+        run: uv run dev/garage_init.py
+      - name: Run the initialization again
+        run: uv run dev/garage_init.py
       - name: Run tests
         run: uv run pytest tests/garage
       - name: Show Garage logs
