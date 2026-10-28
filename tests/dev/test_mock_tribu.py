@@ -99,7 +99,17 @@ def test_empty_field_is_a_bad_request(mock: TestClient, file_url: str) -> None:
     assert add(mock, fields(file_url, title="")) == 400
 
 
-@pytest.mark.parametrize("size", ["ten", "-1"])
+def test_field_sent_as_a_file_is_a_bad_request(mock: TestClient, file_url: str) -> None:
+    """Fields of the contract are text, not files."""
+    values = fields(file_url)
+    del values["title"]
+    response = mock.post(
+        "/migration/add", data=values, files={"title": ("title.txt", b"Workspace")}
+    )
+    assert response.status_code == 400
+
+
+@pytest.mark.parametrize("size", ["ten", "-1", "²"])
 def test_size_must_be_a_natural_number(
     mock: TestClient, file_url: str, size: str
 ) -> None:
@@ -121,6 +131,19 @@ def test_unreachable_file_is_a_bad_request(file_url: str) -> None:
 
     client = TestClient(
         create_app(SECRET_KEY, transport=httpx2.MockTransport(unreachable))
+    )
+    assert add(client, fields(file_url)) == 400
+
+
+def test_unreadable_file_size_is_a_bad_request(file_url: str) -> None:
+    """A file whose size is not given in ASCII digits is refused."""
+
+    def odd_size(request: httpx2.Request) -> httpx2.Response:
+        size = "bytes 0-0/²".encode()
+        return httpx2.Response(206, headers=[(b"Content-Range", size)])
+
+    client = TestClient(
+        create_app(SECRET_KEY, transport=httpx2.MockTransport(odd_size))
     )
     assert add(client, fields(file_url)) == 400
 
@@ -177,9 +200,9 @@ def test_failure_queue_can_be_emptied(mock: TestClient, file_url: str) -> None:
     assert add(mock, fields(file_url)) == 201
 
 
-@pytest.mark.parametrize("status", [42, 600])
+@pytest.mark.parametrize("status", [42, 101, 600])
 def test_queued_failure_must_be_an_http_status(mock: TestClient, status: int) -> None:
-    """Only HTTP statuses can be queued."""
+    """Only final HTTP statuses, from 200 to 599, can be queued."""
     assert mock.post("/failures", json={"status": status}).status_code == 422
 
 

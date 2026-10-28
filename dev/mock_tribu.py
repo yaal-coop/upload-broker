@@ -41,7 +41,12 @@ class Migration(BaseModel):
 
 
 class Failure(BaseModel):
-    status: int = Field(ge=100, le=599)
+    status: int = Field(ge=200, le=599)
+
+
+def natural(value: str) -> int | None:
+    """Read a number written with ASCII digits."""
+    return int(value) if value.isascii() and value.isdigit() else None
 
 
 def create_app(
@@ -68,7 +73,7 @@ def create_app(
         except httpx2.HTTPError:
             return None
         _, _, total = response.headers.get("Content-Range", "").partition("/")
-        return int(total) if total.isdigit() else None
+        return natural(total)
 
     async def download(migration: Migration) -> None:
         digest = hashlib.md5()
@@ -104,7 +109,11 @@ def create_app(
             for name, value in received.items()
             if isinstance(value, str) and value
         }
-        if len(values) != len(FIELDS) or not values["file-size"].isdigit():
+        if len(values) != len(FIELDS):
+            return Response(status_code=400)
+
+        expected_size = natural(values["file-size"])
+        if expected_size is None:
             return Response(status_code=400)
 
         async with lock:
@@ -114,7 +123,7 @@ def create_app(
             size = await remote_size(values["file-url"])
             if size is None:
                 return Response(status_code=400)
-            if size != int(values["file-size"]):
+            if size != expected_size:
                 return Response(status_code=406)
 
             migration = Migration(
