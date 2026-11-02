@@ -37,7 +37,7 @@ dev = [
     "prek>=0.5.5",
     "pytest>=9.1.1",
     "pytest-cov>=7.1.0",
-    "pytest-iam>=0.3.0",
+    "pytest-iam>=0.4.0",
     "time-machine>=3.5.1",
     "tox-uv-bare>=1.36.1",
     "types-authlib>=1.8.0.20260911",
@@ -47,7 +47,7 @@ dev = [
 [tool.uv]
 required-version = ">=0.13.4"
 exclude-newer = "14 days"
-exclude-newer-package = { pytest-iam = false }
+exclude-newer-package = { pytest-iam = false, canaille = false, flask-wtforms-htmx = false, wtforms = false, wtforms-htmx = false, wtforms-htmx-components = false }
 
 [tool.mypy]
 plugins = [

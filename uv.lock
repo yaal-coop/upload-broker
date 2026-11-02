@@ -11,7 +11,12 @@ exclude-newer = "0001-01-01T00:00:00Z" # This has no effect and is included for 
 exclude-newer-span = "P14D"
 
 [options.exclude-newer-package]
+canaille = false
+flask-wtforms-htmx = false
 pytest-iam = false
+wtforms = false
+wtforms-htmx = false
+wtforms-htmx-components = false
 
 [[package]]
 name = "annotated-doc"
@@ -128,15 +133,15 @@ wheels = [
 
 [[package]]
 name = "authlib"
-version = "1.8.0"
+version = "1.9.1"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "cryptography" },
     { name = "joserfc" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/f1/51/bc1729d3cfdc214b4935f4e886e4dd443c3065fd8e1e66423fe84b490f81/authlib-1.8.0.tar.gz", hash = "sha256:f3ecd5f1da737262fb53bf1a4d95c4ea1ad9dd509316587a255c99ab1838a4f0", size = 177759, upload-time = "2026-08-30T12:12:34.833Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/c9/dc/087c08741a98d234c9b98beef8a28d3c309f814d14b6156422c5815bf6d6/authlib-1.9.1.tar.gz", hash = "sha256:5c7d9848f47cac340f060f76ae0bc09b59f5c8e89cc1bb032d4370a0c55b5974", size = 182700, upload-time = "2026-10-14T14:17:52.307Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/b8/c6/6f124bcfbbfb20fba22c939b4e43a06dccfc0e1ca20e5634ca573cb1e271/authlib-1.8.0-py2.py3-none-any.whl", hash = "sha256:88aebbd9af6757e14e912d5dc007ae1dc1f3e27e3b2152ce7c552ee2c3b3c121", size = 260804, upload-time = "2026-08-30T12:12:33.162Z" },
+    { url = "https://files.pythonhosted.org/packages/39/44/a46089266de32a0d809023b6bf31b80a1f26a46954446a7ce695a565cbea/authlib-1.9.1-py2.py3-none-any.whl", hash = "sha256:8b9be8b1e5174dcbf5520e984f1a22dc2edae5b6e40a61d4cedbf86b97e9e69b", size = 266042, upload-time = "2026-10-14T14:17:50.695Z" },
 ]
 
 [[package]]
@@ -218,7 +223,7 @@ wheels = [
 
 [[package]]
 name = "canaille"
-version = "0.3.6"
+version = "0.4.3"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "blinker" },
@@ -230,12 +235,15 @@ dependencies = [
     { name = "flask-dramatiq" },
     { name = "flask-session" },
     { name = "flask-wtf" },
-    { name = "httpx" },
+    { name = "flask-wtforms-htmx" },
+    { name = "httpx2" },
     { name = "pydantic-settings" },
     { name = "wtforms" },
+    { name = "wtforms-htmx" },
+    { name = "wtforms-htmx-components" },
 ]
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/da/e0/b33cdd2ea3beb30fdfb0854e891f08ac7afd32822f92a2f99e4454411c69/canaille-0.3.6-py3-none-any.whl", hash = "sha256:08ea77246f5b9e4c67ea4c867449aa3aa4ce434300a9ae78c2c80558fc719e57", size = 3367977, upload-time = "2026-08-04T13:39:06.484Z" },
+    { url = "https://files.pythonhosted.org/packages/9f/dd/63ef100433f8c9aeb6d6163ebac709ba43b7fdb9b7425b8972610e30d648/canaille-0.4.3-py3-none-any.whl", hash = "sha256:cf44a490bd655976a6bc4df07c46d9a7cc08cf555a5ebf846f6a4734386b7be4", size = 2120964, upload-time = "2026-10-29T21:42:53.333Z" },
 ]
 
 [package.optional-dependencies]
@@ -741,6 +749,20 @@ wheels = [
 ]
 
 [[package]]
+name = "flask-wtforms-htmx"
+version = "0.1.0"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "flask" },
+    { name = "flask-wtf" },
+    { name = "wtforms-htmx" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/67/65/dd9d168284cbf886285ba82d1ae2671ab331f01344eec1968fc53fbac0b8/flask_wtforms_htmx-0.1.0.tar.gz", hash = "sha256:29a460421c7f0a0f2bb3f0a12c1a922f0afb2f3b781789c70820b958774c78db", size = 5590, upload-time = "2026-10-23T22:03:08.689Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/96/fe/b270c403a50c6537fcb4bf59f34b207939a5e566cd380428414695448bdb/flask_wtforms_htmx-0.1.0-py3-none-any.whl", hash = "sha256:2f02e5a18c607267fecca08bd944bfe22a1dd2d42ba2b3b4e03ab642f2e2723a", size = 5210, upload-time = "2026-10-23T22:03:07.466Z" },
+]
+
+[[package]]
 name = "granian"
 version = "2.8.4"
 source = { registry = "https://pypi.org/simple" }
@@ -815,19 +837,6 @@ wheels = [
 ]
 
 [[package]]
-name = "httpcore"
-version = "1.0.9"
-source = { registry = "https://pypi.org/simple" }
-dependencies = [
-    { name = "certifi" },
-    { name = "h11" },
-]
-sdist = { url = "https://files.pythonhosted.org/packages/06/94/82699a10bca87a5556c9c59b5963f2d039dbd239f25bc2a63907a05a14cb/httpcore-1.0.9.tar.gz", hash = "sha256:6e34463af53fd2ab5d807f399a9b45ea31c3dfa2276f15a2c3f00afff6e176e8", size = 85484, upload-time = "2025-04-24T22:06:22.219Z" }
-wheels = [
-    { url = "https://files.pythonhosted.org/packages/7e/f5/f66802a942d491edb555dd61e3a9961140fd64c90bce1eafd741609d334d/httpcore-1.0.9-py3-none-any.whl", hash = "sha256:2d400746a40668fc9dec9810239072b40b4484b640a8c38fd654a024c7a1bf55", size = 78784, upload-time = "2025-04-24T22:06:20.566Z" },
-]
-
-[[package]]
 name = "httpcore2"
 version = "2.13.1"
 source = { registry = "https://pypi.org/simple" }
@@ -838,21 +847,6 @@ dependencies = [
 sdist = { url = "https://files.pythonhosted.org/packages/cb/f3/1db7aa2bc2524062192bb0e0323969492d1883152a232fe36eea65f4e35c/httpcore2-2.13.1.tar.gz", hash = "sha256:e0aa977abe17e69a3b820a24542a6fa88702676d83880b8d194dcd18408e5103", size = 68071, upload-time = "2026-09-23T07:47:22.372Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/09/ba/a4568248771ce81957bfb7cc600264a40fbcda092391ee1c415c50be4bea/httpcore2-2.13.1-py3-none-any.whl", hash = "sha256:e1e05d4f25f7d7d496bfb96748f6f4b67657b03da069b3a68c36069f3db73d0a", size = 83423, upload-time = "2026-09-23T07:47:19.365Z" },
-]
-
-[[package]]
-name = "httpx"
-version = "0.28.1"
-source = { registry = "https://pypi.org/simple" }
-dependencies = [
-    { name = "anyio" },
-    { name = "certifi" },
-    { name = "httpcore" },
-    { name = "idna" },
-]
-sdist = { url = "https://files.pythonhosted.org/packages/b1/df/48c586a5fe32a0f01324ee087459e112ebb7224f646c0b5023f5e79e9956/httpx-0.28.1.tar.gz", hash = "sha256:75e98c5f16b0f35b567856f597f06ff2270a374470a5c2392242528e3e3e42fc", size = 141406, upload-time = "2024-12-06T15:37:23.222Z" }
-wheels = [
-    { url = "https://files.pythonhosted.org/packages/2a/39/e50c7c3a983047577ee07d2a9e53faf5a69493943ec3f6a384bdc792deb2/httpx-0.28.1-py3-none-any.whl", hash = "sha256:d909fcccc110f8c7faf814ca82a9a4d816bc5a6dbfea25d6591d6985b8ba59ad", size = 73517, upload-time = "2024-12-06T15:37:21.509Z" },
 ]
 
 [[package]]
@@ -1620,18 +1614,19 @@ wheels = [
 
 [[package]]
 name = "pytest-iam"
-version = "0.3.0"
+version = "0.4.0"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
+    { name = "blinker" },
     { name = "canaille", extra = ["oidc"] },
     { name = "faker" },
+    { name = "httpx2" },
     { name = "portpicker" },
     { name = "pytest" },
-    { name = "wtforms" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/d3/09/7a73c9479fb5b098cd6501aa6b5b8defa9972b6463a7f02f728358948586/pytest_iam-0.3.0.tar.gz", hash = "sha256:c45c8cf7f521a1e6a8daf6c14a6d80beecfa0fd2d593574e144aa0362aabb7b4", size = 10042, upload-time = "2026-10-26T10:53:18.854Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/a2/89/828ded454c9381e927c2c59ea07f105e9c7ee11d81d91c628b3f542bd72c/pytest_iam-0.4.0.tar.gz", hash = "sha256:c29afc03883606d7f7f40a8c68916162ec254b88619ac73da2971b513d6455a1", size = 11901, upload-time = "2026-10-28T16:08:03.88Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/30/5b/67bdb6c6dd8ee1a28049015c0db1eb1db76b19c4010ccb0850dcfb0d4811/pytest_iam-0.3.0-py3-none-any.whl", hash = "sha256:41f47a1050db2a222fa6d0b83cfa29db649080c51cf6ee7d7e5ac8d5d07fcb94", size = 6508, upload-time = "2026-10-26T10:53:17.528Z" },
+    { url = "https://files.pythonhosted.org/packages/24/db/684c734c598922402dbbf7f27f5144657a2313205bd7ebcbc646eecd2cef/pytest_iam-0.4.0-py3-none-any.whl", hash = "sha256:fbb821e55353c6e3cec10b509c9f9be05a212d4434b0c13c4e3fd8b741f108d2", size = 7761, upload-time = "2026-10-28T16:08:02.713Z" },
 ]
 
 [[package]]
@@ -2197,7 +2192,7 @@ dev = [
     { name = "prek", specifier = ">=0.5.5" },
     { name = "pytest", specifier = ">=9.1.1" },
     { name = "pytest-cov", specifier = ">=7.1.0" },
-    { name = "pytest-iam", specifier = ">=0.3.0" },
+    { name = "pytest-iam", specifier = ">=0.4.0" },
     { name = "python-multipart", specifier = ">=0.0.32" },
     { name = "time-machine", specifier = ">=3.5.1" },
     { name = "tox-uv-bare", specifier = ">=1.36.1" },
@@ -2336,14 +2331,39 @@ wheels = [
 
 [[package]]
 name = "wtforms"
-version = "3.3.0b3"
+version = "3.3.2"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "markupsafe" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/1e/cb/cc93833812d9dda59d3e3a0290a856d038377d694dc2028bba481497408c/wtforms-3.3.0b3.tar.gz", hash = "sha256:a11c56a355dba743b345414bf2490fc3fe715026ad90dc591812dab185d9437d", size = 168361, upload-time = "2026-06-15T12:25:09.87Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/52/3f/742cb21320840bcd80bf9de3d0486126f364664fff12b805086371b1fd1a/wtforms-3.3.2.tar.gz", hash = "sha256:49bb51d10b7832d497e758736da4d56f7d129a015db24756f36f28992f175404", size = 174259, upload-time = "2026-11-01T21:06:22.82Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/b3/0b/e5910c6624212dd86be716947822df95f1b43a287547566831c362d767c4/wtforms-3.3.0b3-py3-none-any.whl", hash = "sha256:4dc5b277cd67a1da04e206f66436852156b41c91bb1543eebb43eb934555fc52", size = 171248, upload-time = "2026-06-15T12:25:08.579Z" },
+    { url = "https://files.pythonhosted.org/packages/0f/8f/3c9a0d834a308f71316c3518d8059578e185115d763d0fb0e2027184626a/wtforms-3.3.2-py3-none-any.whl", hash = "sha256:2fac992f39102d6268b06e05cdbdf37a7e9b9a4e103916d2dff1d09a080b531d", size = 172021, upload-time = "2026-11-01T21:06:21.136Z" },
+]
+
+[[package]]
+name = "wtforms-htmx"
+version = "0.1.3"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "wtforms" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/ed/dc/d592ee01d99a4e3bf09fa90a736196958f8eb3e418149a27712ca3b2b99e/wtforms_htmx-0.1.3.tar.gz", hash = "sha256:53fbc9104e84e957370ea8ed5c17bd11fb2e8ff33d9ba79d3a6447707eada07e", size = 29942, upload-time = "2026-10-25T22:03:02.88Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/ab/3f/5c87fa2250b08407242d0e68596e1bab140cd11412bd49cbac2bac35e8e4/wtforms_htmx-0.1.3-py3-none-any.whl", hash = "sha256:1654075563bf3f535567e5049995c2eaedfd7a471295ba9681c5dd4620e00a10", size = 32221, upload-time = "2026-10-25T22:03:01.68Z" },
+]
+
+[[package]]
+name = "wtforms-htmx-components"
+version = "0.3.0"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "wtforms" },
+    { name = "wtforms-htmx" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/37/a4/e8ecc8b978b58e7d788ed829f3af80ed6f3e831feb647a60b542bbfe02bb/wtforms_htmx_components-0.3.0.tar.gz", hash = "sha256:3628625ed43c55dfd2d0a38a8e1262cb23eb618ec46201099e0a4faf212ce2b4", size = 12224, upload-time = "2026-10-28T00:25:44.192Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/51/86/a8c413594430b2466160892195423a2c9b0526c6c15f9ca7d160467fded5/wtforms_htmx_components-0.3.0-py3-none-any.whl", hash = "sha256:47467e2c515c201a283c5bb19ce532499f806ed74583d6e9b86dd1a11e7db391", size = 11724, upload-time = "2026-10-28T00:25:43.091Z" },
 ]
 
 [[package]]
