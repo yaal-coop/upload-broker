@@ -2,6 +2,7 @@ import datetime
 from typing import Annotated
 from typing import Any
 
+import httpx2
 import pytest
 from fastapi import Depends
 from fastapi import FastAPI
@@ -147,6 +148,41 @@ def test_wrong_service_credentials_make_the_service_unavailable(
     validator.client.client_secret = "wrong"
     headers = bearer(iam_server, user, migrator, broker)
     assert client.get("/subject", headers=headers).status_code == 503
+
+
+@pytest.mark.parametrize("status", [400, 422])
+def test_token_refused_by_the_introspection_is_refused(
+    client: TestClient,
+    validator: AudienceIntrospectTokenValidator,
+    monkeypatch: pytest.MonkeyPatch,
+    status: int,
+) -> None:
+    """A token that the server refuses to introspect answers 401, not 503."""
+
+    def refuse(url: str, token: str) -> httpx2.Response:
+        return httpx2.Response(status, request=httpx2.Request("POST", url))
+
+    monkeypatch.setattr(validator.client, "introspect_token", refuse)
+    response = client.get("/subject", headers={"Authorization": "Bearer short"})
+    assert response.status_code == 401
+    assert response.json() == {"detail": "invalid_token"}
+
+
+@pytest.mark.parametrize("status", [403, 429, 500])
+def test_introspection_failure_makes_the_service_unavailable(
+    client: TestClient,
+    validator: AudienceIntrospectTokenValidator,
+    monkeypatch: pytest.MonkeyPatch,
+    status: int,
+) -> None:
+    """An introspection that fails for another reason answers 503."""
+
+    def fail(url: str, token: str) -> httpx2.Response:
+        return httpx2.Response(status, request=httpx2.Request("POST", url))
+
+    monkeypatch.setattr(validator.client, "introspect_token", fail)
+    response = client.get("/subject", headers={"Authorization": "Bearer short"})
+    assert response.status_code == 503
 
 
 def test_validator_reads_its_settings(settings: Settings) -> None:

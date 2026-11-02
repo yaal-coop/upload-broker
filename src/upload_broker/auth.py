@@ -14,6 +14,8 @@ from fastapi.security import HTTPBearer
 
 from upload_broker.settings import Settings
 
+REFUSED_TOKEN_STATUSES = {httpx2.codes.BAD_REQUEST, httpx2.codes.UNPROCESSABLE_CONTENT}
+
 
 class AudienceIntrospectTokenValidator(IntrospectTokenValidator):
     """Validate tokens by introspection, and require the service in their audience."""
@@ -53,6 +55,11 @@ class AudienceIntrospectTokenValidator(IntrospectTokenValidator):
         response = self.client.introspect_token(
             self.introspection_url, token=token_string
         )
+        # Some servers refuse a malformed token instead of answering that it is
+        # not active (RFC 7662 §2.2). The token is not active either way.
+        if response.status_code in REFUSED_TOKEN_STATUSES:
+            return {"active": False}
+
         response.raise_for_status()
         result: dict[str, Any] = response.json()
         return result
