@@ -22,3 +22,8 @@ services:
     networks:
       default: {}
       drive-migrator: {}
+
+  menshen:
+    networks:
+      default: {}
+      drive-migrator: {}

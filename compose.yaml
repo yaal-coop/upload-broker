@@ -6,6 +6,28 @@ x-dev-image: &dev-image
   image: upload-broker:dev
   pull_policy: build
 
+x-menshen: &menshen
+  image: docker.io/lasuite/menshen-backend:v0.5.0@sha256:d1418aa8d80d87f8f3ac7f002940766bc6412db864625ae50ca9912f982741e6
+  environment:
+    DJANGO_SETTINGS_MODULE: compose_settings
+    DJANGO_CONFIGURATION: Compose
+    DJANGO_SECRET_KEY: dev-menshen-secret-key-not-a-secret
+    DJANGO_ALLOWED_HOSTS: menshen,localhost,127.0.0.1
+    DB_HOST: menshen-postgres
+    DB_NAME: menshen
+    DB_USER: menshen
+    DB_PASSWORD: menshen
+    REDIS_URL: redis://menshen-redis:6379/1
+    OIDC_OP_URL: http://localhost:8083/realms/impress
+    OIDC_OP_INTROSPECTION_ENDPOINT: http://nginx:8083/realms/impress/protocol/openid-connect/token/introspect
+    OIDC_RS_CLIENT_ID: impress
+    OIDC_RS_CLIENT_SECRET: ThisIsAnExampleKeyForDevPurposeOnly
+    TOKEN_EXCHANGE_TOKEN_HASH_KEY: dev-menshen-token-hash-key-not-a-secret
+    WEB_CONCURRENCY: "1"
+  volumes:
+    - ./dev/menshen/compose_settings.py:/app/compose_settings.py:ro
+    - ./dev/menshen/menshen_init.py:/app/menshen_init.py:ro
+
 services:
   garage:
     image: docker.io/dxflrs/garage:v2.4.1@sha256:9c96caa2612d3411acc5b0e6701fb238dbfba33e533a6d7d3d811a4b12d0d020
@@ -63,6 +85,50 @@ services:
       start_period: 30s
       start_interval: 1s
 
+  menshen-postgres:
+    image: docker.io/library/postgres:18-alpine@sha256:10a5c69a83035ab5239f5620d708520e8b28f5aa1f2b20143e6024532edadfb5
+    environment:
+      POSTGRES_DB: menshen
+      POSTGRES_USER: menshen
+      POSTGRES_PASSWORD: menshen
+    volumes:
+      - menshen-postgres:/var/lib/postgresql
+    healthcheck:
+      test: ["CMD", "pg_isready", "--dbname", "menshen", "--username", "menshen"]
+      interval: 30s
+      start_period: 30s
+      start_interval: 1s
+
+  menshen-redis:
+    image: docker.io/library/redis:8-alpine@sha256:21090af93f8324db2f0f0f4f38a7c60369d47d917e000c3423d89d2ae2883537
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 30s
+      start_period: 30s
+      start_interval: 1s
+
+  menshen-init:
+    <<: *menshen
+    command: ["sh", "-c", "python manage.py migrate --no-input && python manage.py shell --command 'import menshen_init; menshen_init.main()'"]
+    depends_on:
+      menshen-postgres:
+        condition: service_healthy
+
+  menshen:
+    <<: *menshen
+    ports:
+      - "127.0.0.1:8072:8000"
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/__heartbeat__')"]
+      interval: 30s
+      start_period: 30s
+      start_interval: 1s
+    depends_on:
+      menshen-init:
+        condition: service_completed_successfully
+      menshen-redis:
+        condition: service_healthy
+
   upload-broker:
     <<: *dev-image
     command: ["--port", "8080", "--reload", "--reload-paths", "/app/src"]
@@ -73,7 +139,7 @@ services:
       UPLOAD_BROKER_S3_ACCESS_KEY_ID: GK000000000000000000000000
       UPLOAD_BROKER_S3_SECRET_ACCESS_KEY: "0000000000000000000000000000000000000000000000000000000000000000"
       UPLOAD_BROKER_TICKET_KEY: dev-ticket-key-not-a-secret-0123456789
-      UPLOAD_BROKER_INTROSPECTION_URL: http://menshen:8000/introspect
+      UPLOAD_BROKER_INTROSPECTION_URL: http://menshen:8000/auth/token/introspect/
       UPLOAD_BROKER_CLIENT_ID: upload-broker
       UPLOAD_BROKER_CLIENT_SECRET: dev-client-secret
       UPLOAD_BROKER_AUDIENCE: upload-broker
@@ -97,3 +163,4 @@ services:
 
 volumes:
   garage:
+  menshen-postgres:

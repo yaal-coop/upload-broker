@@ -54,6 +54,7 @@ plugins = [
   "pydantic.mypy"
 ]
 files = ["src", "tests", "dev"]
+exclude = ["dev/menshen/"]
 strict = true
 
 [tool.pydantic-mypy]
@@ -66,7 +67,7 @@ source = [
     "tests",
     "dev",
 ]
-omit = ["tests/garage/*", "dev/garage_init.py"]
+omit = ["tests/garage/*", "dev/garage_init.py", "dev/menshen/*"]
 branch = true
 
 [tool.coverage.report]

@@ -104,6 +104,9 @@ Stop it with `docker compose down`. Add `--volumes` to also delete the Garage da
 | `garage` | `http://garage.localhost:3900` | Single-node [Garage](https://garagehq.deuxfleurs.fr/) S3 server. Its admin API is on `http://127.0.0.1:3903`. |
 | `garage-init` | | Creates the bucket and the key, then stops. |
 | `mock-tribu` | `http://127.0.0.1:8081` | Fake Tribu migration API. It reloads when `dev/` changes. |
+| `menshen` | `http://127.0.0.1:8072` | [menshen](https://github.com/suitenumerique/menshen) token exchange server. upload-broker checks its tokens there. |
+| `menshen-init` | | Creates the menshen services and exchange rule, then stops. |
+| `menshen-postgres`, `menshen-redis` | | Storage for menshen. |
 
 The S3 endpoint is `http://garage.localhost:3900`, in the `garage` region, with the `uploads` bucket.
 Its access key is `GK000000000000000000000000` and its secret key is 64 zeros.
@@ -112,8 +115,13 @@ In the containers, curl does not use DNS for `*.localhost` and cannot reach Gara
 Browsers and most Linux systems resolve `*.localhost` to the loopback address.
 If yours does not, add `127.0.0.1 garage.localhost` to `/etc/hosts`.
 
-The authorization server is not part of the stack yet.
-Until it is, the routes that need a token answer `503` when a token is sent, and `401` otherwise.
+menshen exchanges the Keycloak tokens of drive-migrator for upload-broker tokens.
+The `drive-migrator` client asks for the `upload-broker` audience and the `depot:archive:create` scope.
+The Keycloak token must have the `openid` scope.
+It exchanges tokens on `POST /auth/token/exchange/`, and upload-broker checks them on `POST /auth/token/introspect/`.
+The client secrets are in `dev/menshen/menshen_init.py`.
+menshen reaches Keycloak only on the drive-migrator network.
+Without drive-migrator, menshen starts, but it cannot exchange tokens.
 
 ### Fake Tribu
 
@@ -146,7 +154,7 @@ Start drive-migrator first, then:
 $ docker compose -f compose.yaml -f compose.drive-migrator.yaml up --wait
 ```
 
-From the drive-migrator containers, the broker is `http://upload-broker:8080`, the fake Tribu is `http://mock-tribu:8081` and Garage is `http://garage.localhost:3900`.
+From the drive-migrator containers, the broker is `http://upload-broker:8080`, menshen is `http://menshen:8000`, the fake Tribu is `http://mock-tribu:8081` and Garage is `http://garage.localhost:3900`.
 Stop upload-broker with `docker compose down` before drive-migrator, or Docker cannot remove the drive-migrator network.
 
 ### Garage tests
