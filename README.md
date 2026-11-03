@@ -13,7 +13,40 @@ It was written to move workspace archives from [drive-migrator](https://github.c
 
 ## API
 
-Every route but `/health` requires a bearer token whose audience contains the service and whose scope contains `UPLOAD_BROKER_REQUIRED_SCOPE`.
+```mermaid
+sequenceDiagram
+    participant C as Client
+    participant M as Authorization server
+    participant B as upload-broker
+    participant S as S3 bucket
+    participant T as Tribu
+
+    C->>M: exchange the user token
+    M-->>C: token for upload-broker
+    C->>B: POST /uploads (size, MD5, source, owner)
+    B->>M: introspect the token
+    B->>S: CreateMultipartUpload
+    B-->>C: 201, ticket and presigned part URLs
+    loop for each part
+        C->>S: PUT the part
+        S-->>C: ETag
+    end
+    opt URLs expired or upload interrupted
+        C->>B: POST /uploads/parts (ticket)
+        B->>S: ListParts
+        B-->>C: 200, URLs of the missing parts
+    end
+    C->>B: POST /uploads/complete (ticket, ETags)
+    B->>M: introspect the token
+    B->>S: ListParts, CompleteMultipartUpload, HeadObject
+    B->>T: POST /migration/add (presigned download URL, MD5, size, source, owner)
+    T-->>B: 201
+    B-->>C: 204
+    T->>S: GET the archive
+```
+
+Every route but `/health` requires a bearer token.
+Its audience must contain `UPLOAD_BROKER_AUDIENCE`, and its scope must contain `UPLOAD_BROKER_REQUIRED_SCOPE`.
 The interactive documentation is served at `/docs`.
 
 | Route | Body | Response |
@@ -24,12 +57,12 @@ The interactive documentation is served at `/docs`.
 
 The client sends each part with a `PUT` on its URL, and keeps the `ETag` header of the response.
 On completion, upload-broker adds the file to the migration queue of Tribu.
-Tribu gets a presigned download URL that expires with the ticket.
+Tribu gets a presigned download URL, valid for `UPLOAD_BROKER_PRESIGN_EXPIRATION` after the completion.
 When Tribu is unavailable, the client can complete the upload again later.
-When the upload was already handed over, completing it again answers `409` with `already_queued`.
-Tribu gives the same answer when another archive of the same source is already in migration.
+When Tribu already has a migration for this source, completing the upload answers `409` with `already_queued`.
+This happens when the client completes the same upload twice, or when it sends another archive of the same source.
 
-Errors answer with a stable code in `detail`:
+Error responses have a stable code in `detail`:
 
 | Status | Code | Meaning |
 |---|---|---|
@@ -77,7 +110,7 @@ Settings are read from environment variables:
 | `UPLOAD_BROKER_TRIBU_URL` | required | Base URL of the Tribu API. |
 | `UPLOAD_BROKER_TRIBU_SECRET_KEY` | required | Secret key sent to the Tribu migration API. |
 | `UPLOAD_BROKER_TRIBU_TIMEOUT` | `10` | Timeout of the requests to Tribu, in seconds. |
-| `UPLOAD_BROKER_TRUSTED_PROXIES` | `127.0.0.1` | Comma-separated addresses or networks of the reverse proxies whose `X-Forwarded-*` headers are trusted, or `*`. |
+| `UPLOAD_BROKER_TRUSTED_PROXIES` | `127.0.0.1` | Reverse proxies whose `X-Forwarded-*` headers are trusted: comma-separated addresses or networks, or `*` for all. |
 
 ## Development
 
@@ -118,7 +151,7 @@ If yours does not, add `127.0.0.1 garage.localhost` to `/etc/hosts`.
 menshen exchanges the Keycloak tokens of drive-migrator for upload-broker tokens.
 The `drive-migrator` client asks for the `upload-broker` audience and the `depot:archive:create` scope.
 The Keycloak token must have the `openid` scope.
-It exchanges tokens on `POST /auth/token/exchange/`, and upload-broker checks them on `POST /auth/token/introspect/`.
+menshen exchanges tokens on `POST /auth/token/exchange/`, and upload-broker checks them on `POST /auth/token/introspect/`.
 The client secrets are in `dev/menshen/menshen_init.py`.
 menshen reaches Keycloak only on the drive-migrator network.
 Without drive-migrator, menshen starts, but it cannot exchange tokens.
@@ -127,7 +160,7 @@ Without drive-migrator, menshen starts, but it cannot exchange tokens.
 
 `mock-tribu` answers `POST /migration/add` like Tribu.
 It checks the secret key, the fields and the file size, then downloads the file in the background and checks its MD5.
-It refuses a source it already knows with `409`, whatever its status, until the source is forgotten.
+It refuses a source it already knows with `409`, whatever its status, until `DELETE /migrations` clears it.
 
 | Route | Effect |
 |---|---|
@@ -159,7 +192,7 @@ Stop upload-broker with `docker compose down` before drive-migrator, or Docker c
 
 ### Garage tests
 
-The unit tests simulate S3 with [moto](https://github.com/getmoto/moto), which does not check signatures nor expiration dates.
+The unit tests simulate S3 with [moto](https://github.com/getmoto/moto), which does not check signatures or expiration dates.
 The tests of the presigned URLs run against Garage on `http://127.0.0.1:3900`, and are not part of the default test run:
 
 ```console
