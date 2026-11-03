@@ -27,6 +27,8 @@ def test_served_app_reads_settings_from_the_environment(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     """The served application reads its settings from the environment."""
+    monkeypatch.setenv("UPLOAD_BROKER_S3_ENDPOINT_URL", "http://localhost:3900")
+    monkeypatch.setenv("UPLOAD_BROKER_S3_REGION", "garage")
     monkeypatch.setenv("UPLOAD_BROKER_S3_BUCKET", "bucket")
     monkeypatch.setenv("UPLOAD_BROKER_S3_ACCESS_KEY_ID", "key")
     monkeypatch.setenv("UPLOAD_BROKER_S3_SECRET_ACCESS_KEY", "secret")

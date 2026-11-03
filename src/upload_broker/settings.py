@@ -14,10 +14,10 @@ class Settings(BaseSettings):
 
     model_config = SettingsConfigDict(env_prefix="UPLOAD_BROKER_")
 
-    s3_endpoint_url: str | None = None
+    s3_endpoint_url: str
     """Public endpoint of the S3 server. The presigned URLs point to it."""
 
-    s3_region: str | None = None
+    s3_region: str
     s3_bucket: str
     s3_access_key_id: str
     s3_secret_access_key: SecretStr

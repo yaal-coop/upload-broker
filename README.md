@@ -57,8 +57,8 @@ Settings are read from environment variables:
 
 | Variable | Default | Description |
 |---|---|---|
-| `UPLOAD_BROKER_S3_ENDPOINT_URL` | AWS | Public endpoint of the S3 server. The presigned URLs point to it. |
-| `UPLOAD_BROKER_S3_REGION` | | Region of the bucket. |
+| `UPLOAD_BROKER_S3_ENDPOINT_URL` | required | Public endpoint of the S3 server. The presigned URLs point to it. |
+| `UPLOAD_BROKER_S3_REGION` | required | Region of the bucket, for example `fr-par`. |
 | `UPLOAD_BROKER_S3_BUCKET` | required | Bucket that receives the files. |
 | `UPLOAD_BROKER_S3_ACCESS_KEY_ID` | required | S3 access key. |
 | `UPLOAD_BROKER_S3_SECRET_ACCESS_KEY` | required | S3 secret key. |
