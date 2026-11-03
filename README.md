@@ -190,6 +190,62 @@ $ docker compose -f compose.yaml -f compose.drive-migrator.yaml up --wait
 From the drive-migrator containers, the broker is `http://upload-broker:8080`, menshen is `http://menshen:8000`, the fake Tribu is `http://mock-tribu:8081` and Garage is `http://garage.localhost:3900`.
 Stop upload-broker with `docker compose down` before drive-migrator, or Docker cannot remove the drive-migrator network.
 
+#### Simulate a migration in a browser
+
+drive-migrator needs a version with the Tribu destination.
+For now, it is on the `feat/tribu-destination` branch.
+Its `env.d/development/common` must have:
+
+- `SOURCE_BACKEND=core.sources.filesystem.FileSystemSourceBackend`;
+- `core.destinations.tribu.backend.TribuDestinationBackend` in `DESTINATION_BACKENDS`;
+- `UPLOAD_BROKER_URL=http://upload-broker:8080`, `UPLOAD_BROKER_AUDIENCE=upload-broker` and `UPLOAD_BROKER_SCOPE=depot:archive:create`;
+- `MENSHEN_SERVER_ROOT_URL=http://menshen:8000`, `MENSHEN_CLIENT_ID=drive-migrator`, and `MENSHEN_CLIENT_SECRET` from `dev/menshen/menshen_init.py`.
+
+On a new database, add the `read-only-mode` feature flag as inactive on `http://localhost:8071/admin/core/featureflag/add/`.
+The admin needs a superuser: run `make superuser` in the drive-migrator repository.
+Without it, drive-migrator runs in read-only mode and does not list the workspaces.
+
+Start the drive-migrator front end. Run this in the drive-migrator repository, not in this one:
+
+```console
+$ docker compose up -d frontend-dev
+```
+
+Then:
+
+1. Open `http://localhost:3000`, pick « Tribu » in « Vers », and click « Démarrer la migration ».
+2. Sign in as `impress`, with the password `impress`.
+3. The next page asks for a Resana connection, which the filesystem source does not need.
+   Skip it and open `http://localhost:3000/dashboard` in the same tab.
+   The tab keeps the target you picked. A new tab sends the workspaces to LaSuite Fichiers.
+4. Check that the page says « Chaque escape sélectionné sera envoyé à Tribu ».
+   Select a workspace, click « Migrer », then « Démarrer la migration ».
+   The workspaces are the folders of `data/demo-data/impress@impress.world/` in drive-migrator.
+5. The fake Tribu receives the archive, then downloads it:
+
+   ```console
+   $ curl http://127.0.0.1:8081/migrations
+   ```
+
+   The status goes from `queued` to `downloaded`.
+
+The Keycloak session of drive-migrator expires after 30 minutes without activity.
+After that, menshen refuses the exchange and the migration fails.
+Sign out and in again before you start a migration.
+
+A migrated workspace cannot be migrated again.
+To start over, reset the workspaces. Run this in the drive-migrator repository, not in this one:
+
+```console
+$ docker compose exec app-dev uv run python manage.py set_workspaces_status_none
+```
+
+Then empty the fake Tribu, from any directory:
+
+```console
+$ curl -X DELETE http://127.0.0.1:8081/migrations
+```
+
 ### Garage tests
 
 The unit tests simulate S3 with [moto](https://github.com/getmoto/moto), which does not check signatures or expiration dates.
