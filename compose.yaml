@@ -35,7 +35,7 @@ services:
       - "127.0.0.1:3900:3900"
       - "127.0.0.1:3903:3903"
     volumes:
-      - ./dev/garage.toml:/etc/garage.toml:ro
+      - ./dev/garage/garage.toml:/etc/garage.toml:ro
       - garage:/var/lib/garage
     networks:
       default:
@@ -49,7 +49,7 @@ services:
 
   garage-init:
     <<: *dev-image
-    entrypoint: ["python", "dev/garage_init.py"]
+    entrypoint: ["python", "dev/garage/garage_init.py"]
     environment:
       GARAGE_ADMIN_URL: http://garage:3903
     volumes:
@@ -65,14 +65,14 @@ services:
       - --interface
       - asgi
       - --factory
-      - dev.mock_tribu:create_app
+      - dev.tribu.mock_tribu:create_app
       - --host
       - 0.0.0.0
       - --port
       - "8081"
       - --reload
       - --reload-paths
-      - /app/dev
+      - /app/dev/tribu
     environment:
       MOCK_TRIBU_SECRET_KEY: dev-tribu-secret-key
     ports:

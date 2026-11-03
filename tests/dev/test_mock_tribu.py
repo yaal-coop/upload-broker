@@ -5,7 +5,7 @@ import httpx2
 import pytest
 from fastapi.testclient import TestClient
 
-from dev.mock_tribu import create_app
+from dev.tribu.mock_tribu import create_app
 from upload_broker.storage import Storage
 
 DATA = b"0123456789"

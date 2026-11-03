@@ -45,7 +45,7 @@ jobs:
       - name: Start the stack
         run: docker compose up --wait
       - name: Run the initialization again
-        run: uv run dev/garage_init.py
+        run: uv run dev/garage/garage_init.py
       - name: Run tests
         run: uv run pytest tests/garage
       - name: Show Garage logs

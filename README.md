@@ -136,7 +136,7 @@ Stop it with `docker compose down`. Add `--volumes` to also delete the Garage da
 | `upload-broker` | `http://127.0.0.1:8090` | The broker. It reloads when `src/` changes. |
 | `garage` | `http://garage.localhost:3900` | Single-node [Garage](https://garagehq.deuxfleurs.fr/) S3 server. Its admin API is on `http://127.0.0.1:3903`. |
 | `garage-init` | | Creates the bucket and the key, then stops. |
-| `mock-tribu` | `http://127.0.0.1:8081` | Fake Tribu migration API. It reloads when `dev/` changes. |
+| `mock-tribu` | `http://127.0.0.1:8081` | Fake Tribu migration API. It reloads when `dev/tribu/` changes. |
 | `menshen` | `http://127.0.0.1:8072` | [menshen](https://github.com/suitenumerique/menshen) token exchange server. upload-broker checks its tokens there. |
 | `menshen-init` | | Creates the menshen services and exchange rule, then stops. |
 | `menshen-postgres`, `menshen-redis` | | Storage for menshen. |
@@ -253,6 +253,6 @@ The tests of the presigned URLs run against Garage on `http://127.0.0.1:3900`, a
 
 ```console
 $ docker compose up --detach --wait garage
-$ uv run dev/garage_init.py
+$ uv run dev/garage/garage_init.py
 $ uv run pytest tests/garage
 ```

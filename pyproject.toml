@@ -67,7 +67,7 @@ source = [
     "tests",
     "dev",
 ]
-omit = ["tests/garage/*", "dev/garage_init.py", "dev/menshen/*"]
+omit = ["tests/garage/*", "dev/garage/*", "dev/menshen/*"]
 branch = true
 
 [tool.coverage.report]
